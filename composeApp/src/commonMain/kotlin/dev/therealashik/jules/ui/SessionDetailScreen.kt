@@ -55,7 +55,8 @@ fun SessionDetailScreen(viewModel: JulesViewModel, state: UiState, screen: Scree
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(state.activities.reversed(), key = { it.id.ifEmpty { it.name } }) { activity ->
+                val reversedActivities = remember(state.activities) { state.activities.reversed() }
+                items(reversedActivities, key = { it.id.ifEmpty { it.name } }) { activity ->
                     ActivityCard(activity = activity)
                 }
             }

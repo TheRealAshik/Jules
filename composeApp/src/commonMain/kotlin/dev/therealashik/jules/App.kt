@@ -17,6 +17,7 @@ import dev.therealashik.jules.ui.JulesViewModel
 import dev.therealashik.jules.ui.Screen
 import dev.therealashik.jules.ui.SessionDetailScreen
 import dev.therealashik.jules.ui.SessionListScreen
+import dev.therealashik.jules.ui.SettingsScreen
 
 // A purple seed color fallback
 private val LightColorScheme = lightColorScheme(
@@ -74,7 +75,7 @@ fun App() {
         colorScheme = colorScheme,
     ) {
         val apiClient = remember { JulesApiClient(getApiKey()) }
-        val viewModel = viewModel { JulesViewModel(apiClient) }
+        val viewModel = viewModel { JulesViewModel(apiClient, getApiKey()) }
         val state by viewModel.state.collectAsState()
 
         Surface(color = MaterialTheme.colorScheme.background) {
@@ -82,6 +83,7 @@ fun App() {
                 is Screen.SessionList -> SessionListScreen(viewModel, state)
                 is Screen.CreateSession -> CreateSessionScreen(viewModel, state)
                 is Screen.SessionDetail -> SessionDetailScreen(viewModel, state, screen)
+                is Screen.Settings -> SettingsScreen(viewModel, state)
             }
         }
     }

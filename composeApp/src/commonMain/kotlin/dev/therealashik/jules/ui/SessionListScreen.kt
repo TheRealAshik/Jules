@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -38,7 +39,12 @@ fun SessionListScreen(viewModel: JulesViewModel, state: UiState) {
     Scaffold(
         topBar = {
             LargeTopAppBar(
-                title = { Text("Jules", fontWeight = FontWeight.Bold) }
+                title = { Text("Jules", fontWeight = FontWeight.Bold) },
+                actions = {
+                    IconButton(onClick = { viewModel.navigate(Screen.Settings) }) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                    }
+                }
             )
         },
         floatingActionButton = {

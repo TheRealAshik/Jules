@@ -15,7 +15,7 @@ class JulesApiClient(
     private val apiKey: String,
     httpClient: HttpClient? = null
 ) {
-    private val client = httpClient ?: HttpClient {
+    private val client = (httpClient ?: HttpClient()).config {
         install(ContentNegotiation) {
             json(Json {
                 ignoreUnknownKeys = true
@@ -24,14 +24,7 @@ class JulesApiClient(
                 explicitNulls = false
             })
         }
-    }
-
-    init {
-        client.config {
-            defaultRequest {
-                header("x-goog-api-key", apiKey)
-                contentType(ContentType.Application.Json)
-            }
+        defaultRequest {
         }
     }
 
@@ -46,8 +39,6 @@ class JulesApiClient(
 
     suspend fun createSession(request: CreateSessionRequest): Session {
         val response = client.post("$baseUrl/sessions") {
-            header("x-goog-api-key", apiKey)
-            contentType(ContentType.Application.Json)
             setBody(request)
         }
         return response.bodyOrThrow()
@@ -55,7 +46,6 @@ class JulesApiClient(
 
     suspend fun listSessions(pageSize: Int = 30, pageToken: String? = null): ListSessionsResponse {
         val response = client.get("$baseUrl/sessions") {
-            header("x-goog-api-key", apiKey)
             parameter("pageSize", pageSize)
             if (pageToken != null) {
                 parameter("pageToken", pageToken)
@@ -66,14 +56,12 @@ class JulesApiClient(
 
     suspend fun getSession(sessionId: String): Session {
         val response = client.get("$baseUrl/sessions/$sessionId") {
-            header("x-goog-api-key", apiKey)
         }
         return response.bodyOrThrow()
     }
 
     suspend fun deleteSession(sessionId: String) {
         val response = client.delete("$baseUrl/sessions/$sessionId") {
-            header("x-goog-api-key", apiKey)
         }
         if (!response.status.isSuccess()) {
             throw Exception("API Error: ${response.status.value} - ${response.bodyAsText()}")
@@ -82,8 +70,6 @@ class JulesApiClient(
 
     suspend fun sendMessage(sessionId: String, request: SendMessageRequest): SendMessageResponse {
         val response = client.post("$baseUrl/sessions/$sessionId:sendMessage") {
-            header("x-goog-api-key", apiKey)
-            contentType(ContentType.Application.Json)
             setBody(request)
         }
         return response.bodyOrThrow()
@@ -91,8 +77,6 @@ class JulesApiClient(
 
     suspend fun approvePlan(sessionId: String): ApprovePlanResponse {
         val response = client.post("$baseUrl/sessions/$sessionId:approvePlan") {
-            header("x-goog-api-key", apiKey)
-            contentType(ContentType.Application.Json)
             setBody(ApprovePlanRequest())
         }
         return response.bodyOrThrow()
@@ -100,7 +84,6 @@ class JulesApiClient(
 
     suspend fun listActivities(sessionId: String, pageSize: Int = 50, pageToken: String? = null, createTime: String? = null): ListActivitiesResponse {
         val response = client.get("$baseUrl/sessions/$sessionId/activities") {
-            header("x-goog-api-key", apiKey)
             parameter("pageSize", pageSize)
             if (pageToken != null) {
                 parameter("pageToken", pageToken)
@@ -114,14 +97,12 @@ class JulesApiClient(
 
     suspend fun getActivity(sessionId: String, activityId: String): Activity {
         val response = client.get("$baseUrl/sessions/$sessionId/activities/$activityId") {
-            header("x-goog-api-key", apiKey)
         }
         return response.bodyOrThrow()
     }
 
     suspend fun listSources(pageSize: Int = 30, pageToken: String? = null, filter: String? = null): ListSourcesResponse {
         val response = client.get("$baseUrl/sources") {
-            header("x-goog-api-key", apiKey)
             parameter("pageSize", pageSize)
             if (pageToken != null) {
                 parameter("pageToken", pageToken)
@@ -135,7 +116,6 @@ class JulesApiClient(
 
     suspend fun getSource(sourceId: String): Source {
         val response = client.get("$baseUrl/sources/$sourceId") {
-            header("x-goog-api-key", apiKey)
         }
         return response.bodyOrThrow()
     }
