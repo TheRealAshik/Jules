@@ -23,8 +23,10 @@ fun SettingsScreen(viewModel: JulesViewModel, state: UiState) {
             TopAppBar(
                 title = { Text("Settings") },
                 navigationIcon = {
-                    IconButton(onClick = { viewModel.navigate(Screen.SessionList) }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    if (state.apiKey.isNotBlank()) {
+                        IconButton(onClick = { viewModel.navigate(Screen.SessionList) }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
                     }
                 }
             )

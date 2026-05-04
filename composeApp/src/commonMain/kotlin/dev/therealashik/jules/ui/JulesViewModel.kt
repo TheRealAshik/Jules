@@ -31,7 +31,12 @@ private fun String.normalizeSessionId() = substringAfter("sessions/").takeIf { i
 
 class JulesViewModel(private var apiClient: JulesApiClient, initialApiKey: String = "") : ViewModel() {
 
-    private val _state = MutableStateFlow(UiState(apiKey = initialApiKey))
+    private val _state = MutableStateFlow(
+        UiState(
+            apiKey = initialApiKey,
+            screen = if (initialApiKey.isBlank()) Screen.Settings else Screen.SessionList
+        )
+    )
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     fun saveApiKey(key: String) {
