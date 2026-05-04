@@ -2,6 +2,7 @@ package dev.therealashik.jules.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dev.therealashik.jules.KeyValueStore
 import dev.therealashik.jules.sdk.JulesApiClient
 import dev.therealashik.jules.sdk.models.*
 import kotlinx.coroutines.CancellationException
@@ -29,7 +30,11 @@ data class UiState(
 
 private fun String.normalizeSessionId() = substringAfter("sessions/").takeIf { it.isNotBlank() } ?: this
 
-class JulesViewModel(private var apiClient: JulesApiClient, initialApiKey: String = "") : ViewModel() {
+class JulesViewModel(
+    private var apiClient: JulesApiClient,
+    initialApiKey: String = "",
+    private val store: KeyValueStore? = null
+) : ViewModel() {
 
     private val _state = MutableStateFlow(
         UiState(
@@ -40,6 +45,7 @@ class JulesViewModel(private var apiClient: JulesApiClient, initialApiKey: Strin
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     fun saveApiKey(key: String) {
+        store?.putString("api_key", key)
         apiClient.close()
         apiClient = JulesApiClient(key)
         _state.update { it.copy(apiKey = key) }

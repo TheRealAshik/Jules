@@ -71,11 +71,11 @@ fun App() {
     val darkTheme = isSystemInDarkTheme()
     val colorScheme = getAppColorScheme(darkTheme)
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-    ) {
-        val apiClient = remember { JulesApiClient(getApiKey()) }
-        val viewModel = viewModel { JulesViewModel(apiClient, getApiKey()) }
+    MaterialTheme(colorScheme = colorScheme) {
+        val store = remember { KeyValueStore() }
+        val savedKey = remember { store.getString("api_key") }
+        val apiClient = remember { JulesApiClient(savedKey) }
+        val viewModel = viewModel { JulesViewModel(apiClient, savedKey, store) }
         val state by viewModel.state.collectAsState()
 
         Surface(color = MaterialTheme.colorScheme.background) {
