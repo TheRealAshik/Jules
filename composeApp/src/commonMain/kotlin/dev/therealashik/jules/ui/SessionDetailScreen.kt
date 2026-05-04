@@ -50,12 +50,12 @@ fun SessionDetailScreen(viewModel: JulesViewModel, state: UiState, screen: Scree
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            val reversedActivities = remember(state.activities) { state.activities.reversed() }
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                val reversedActivities = remember(state.activities) { state.activities.reversed() }
                 items(reversedActivities, key = { it.id.ifEmpty { it.name } }) { activity ->
                     ActivityCard(activity = activity)
                 }
