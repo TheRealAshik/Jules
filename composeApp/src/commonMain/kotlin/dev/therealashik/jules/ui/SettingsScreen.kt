@@ -1,8 +1,10 @@
 package dev.therealashik.jules.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.LibraryBooks
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -64,6 +66,17 @@ fun SettingsScreen(viewModel: JulesViewModel, state: UiState) {
             ) {
                 Text("Save")
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(8.dp))
+
+            ListItem(
+                headlineContent = { Text("Prompt Gallery") },
+                supportingContent = { Text("Manage your reusable prompts") },
+                leadingContent = { Icon(Icons.Default.LibraryBooks, contentDescription = null) },
+                modifier = Modifier.clickable { viewModel.navigate(Screen.PromptGallery) }
+            )
         }
     }
 }

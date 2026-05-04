@@ -60,6 +60,7 @@ kotlin {
             implementation(projects.shared)
             implementation(libs.markdown.renderer)
             implementation(libs.markdown.renderer.m3)
+            implementation(libs.kotlinx.serialization.json)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

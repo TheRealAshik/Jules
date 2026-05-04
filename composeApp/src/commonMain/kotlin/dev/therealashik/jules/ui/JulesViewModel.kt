@@ -11,17 +11,22 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.uuid.ExperimentalUuidApi
 
 sealed interface Screen {
     data object SessionList : Screen
     data object CreateSession : Screen
     data class SessionDetail(val sessionId: String, val title: String, val prompt: String = "") : Screen
     data object Settings : Screen
+    data object PromptGallery : Screen
 }
 
 data class UiState(
     val sessions: List<Session> = emptyList(),
     val activities: List<Activity> = emptyList(),
+    val promptItems: List<dev.therealashik.jules.PromptItem> = emptyList(),
+    val sources: List<Source> = emptyList(),
+    val selectedGalleryPrompts: List<dev.therealashik.jules.PromptItem> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
     val screen: Screen = Screen.SessionList,
@@ -35,6 +40,8 @@ class JulesViewModel(
     initialApiKey: String = "",
     private val store: KeyValueStore? = null
 ) : ViewModel() {
+
+    private val promptGalleryRepository = store?.let { dev.therealashik.jules.PromptGalleryRepository(it) }
 
     private val _state = MutableStateFlow(
         UiState(
@@ -53,12 +60,66 @@ class JulesViewModel(
     }
 
     fun navigate(screen: Screen) {
-        _state.update { it.copy(screen = screen, error = null) }
+        _state.update {
+            it.copy(
+                screen = screen,
+                error = null,
+                selectedGalleryPrompts = emptyList() // clear selections on navigation
+            )
+        }
         when (screen) {
             is Screen.SessionList -> loadSessions()
             is Screen.SessionDetail -> loadActivities(screen.sessionId)
-            Screen.CreateSession, Screen.Settings -> Unit
+            is Screen.PromptGallery -> loadPrompts()
+            is Screen.CreateSession -> {
+                loadPrompts()
+                loadSources()
+            }
+            Screen.Settings -> Unit
         }
+    }
+
+    fun loadSources() {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
+            try {
+                val response = apiClient.listSources()
+                _state.update { it.copy(isLoading = false, sources = response.sources) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(isLoading = false, error = e.message ?: "Failed to load sources") }
+            }
+        }
+    }
+
+    fun toggleGalleryPrompt(item: dev.therealashik.jules.PromptItem) {
+        _state.update { currentState ->
+            val updated = if (currentState.selectedGalleryPrompts.contains(item)) {
+                currentState.selectedGalleryPrompts - item
+            } else {
+                currentState.selectedGalleryPrompts + item
+            }
+            currentState.copy(selectedGalleryPrompts = updated)
+        }
+    }
+
+    fun loadPrompts() {
+        val prompts = promptGalleryRepository?.getAll() ?: emptyList()
+        _state.update { it.copy(promptItems = prompts) }
+    }
+
+    @OptIn(ExperimentalUuidApi::class)
+    fun savePrompt(title: String, prompt: String) {
+        val id = kotlin.uuid.Uuid.random().toString()
+        val item = dev.therealashik.jules.PromptItem(id, title, prompt)
+        promptGalleryRepository?.save(item)
+        loadPrompts()
+    }
+
+    fun deletePrompt(id: String) {
+        promptGalleryRepository?.delete(id)
+        loadPrompts()
     }
 
     fun loadSessions() {
@@ -75,15 +136,37 @@ class JulesViewModel(
         }
     }
 
-    fun createSession(prompt: String, title: String) {
+    fun createSession(prompt: String, title: String, source: Source? = null, branch: GitHubBranch? = null) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             try {
+                val stateSnapshot = _state.value
+                val combinedPrompt = buildString {
+                    if (stateSnapshot.selectedGalleryPrompts.isNotEmpty()) {
+                        append(stateSnapshot.selectedGalleryPrompts.joinToString("\n\n") { it.prompt })
+                        if (prompt.isNotBlank()) append("\n\n")
+                    }
+                    if (prompt.isNotBlank()) {
+                        append(prompt)
+                    }
+                }
+
+                val sourceContext = if (source != null) {
+                    SourceContext(
+                        source = source.name,
+                        githubRepoContext = branch?.let { GitHubRepoContext(startingBranch = it.displayName) }
+                    )
+                } else null
+
                 val session = apiClient.createSession(
-                    CreateSessionRequest(prompt = prompt, title = title.takeIf { it.isNotBlank() })
+                    CreateSessionRequest(
+                        prompt = combinedPrompt,
+                        title = title.takeIf { it.isNotBlank() },
+                        sourceContext = sourceContext
+                    )
                 )
                 _state.update { it.copy(isLoading = false) }
-                navigate(Screen.SessionDetail(session.name.normalizeSessionId(), session.title, prompt))
+                navigate(Screen.SessionDetail(session.name.normalizeSessionId(), session.title, combinedPrompt))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
