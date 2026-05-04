@@ -2,9 +2,10 @@ name: Build
 
 on:
   push:
-    branches: [main]
+    branches: ["**"]        # যেকোনো ব্রাঞ্চে পুশ করলে চলবে
   pull_request:
-    branches: [main]
+    branches: ["**"]        # যেকোনো ব্রাঞ্চে PR করলে চলবে
+  workflow_dispatch:        # ম্যানুয়ালি রান করার অপশন 🔘
 
 jobs:
   android:
