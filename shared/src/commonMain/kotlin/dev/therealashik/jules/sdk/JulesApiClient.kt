@@ -25,6 +25,8 @@ class JulesApiClient(
             })
         }
         defaultRequest {
+            header("x-goog-api-key", apiKey)
+            contentType(ContentType.Application.Json)
         }
     }
 
