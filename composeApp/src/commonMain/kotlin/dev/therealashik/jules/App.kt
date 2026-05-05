@@ -86,7 +86,7 @@ fun App() {
     }
     val colorScheme = getAppColorScheme(darkTheme)
 
-    MaterialTheme(colorScheme = colorScheme) {
+    MaterialTheme(colorScheme = colorScheme, typography = AppTypography()) {
         Surface(color = MaterialTheme.colorScheme.background) {
             when (val screen = state.screen) {
                 is Screen.SessionList -> SessionListScreen(viewModel, state)
