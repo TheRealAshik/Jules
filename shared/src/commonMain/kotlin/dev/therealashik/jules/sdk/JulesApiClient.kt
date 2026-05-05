@@ -10,7 +10,6 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.decodeFromString
 
 class JulesApiClient(
     private val apiKey: String,
@@ -91,10 +90,7 @@ class JulesApiClient(
             if (pageToken != null) parameter("pageToken", pageToken)
             if (createTime != null) parameter("createTime", createTime)
         }
-        val raw = response.bodyAsText()
-        println("DEBUG activities: $raw")
-        if (!response.status.isSuccess()) throw Exception("API Error: ${response.status.value} - $raw")
-        return Json { ignoreUnknownKeys = true; isLenient = true }.decodeFromString(raw)
+        return response.bodyOrThrow()
     }
 
     suspend fun getActivity(sessionId: String, activityId: String): Activity {
