@@ -47,10 +47,10 @@ fun SessionListScreen(viewModel: JulesViewModel, state: UiState) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Jules", fontWeight = FontWeight.Bold) },
+                title = { Text(Strings.JULES, fontWeight = FontWeight.Bold) },
                 actions = {
                     IconButton(onClick = { viewModel.navigate(Screen.Settings) }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                        Icon(Icons.Default.Settings, contentDescription = Strings.SETTINGS)
                     }
                 }
             )
@@ -58,8 +58,8 @@ fun SessionListScreen(viewModel: JulesViewModel, state: UiState) {
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { viewModel.navigate(Screen.CreateSession) },
-                icon = { Icon(Icons.Filled.Add, contentDescription = "New Session") },
-                text = { Text("New Session") },
+                icon = { Icon(Icons.Filled.Add, contentDescription = Strings.NEW_SESSION) },
+                text = { Text(Strings.NEW_SESSION) },
                 expanded = true
             )
         },
@@ -78,13 +78,13 @@ fun SessionListScreen(viewModel: JulesViewModel, state: UiState) {
                 ) {
                     Icon(
                         imageVector = Icons.Default.Warning,
-                        contentDescription = "Empty",
-                        modifier = Modifier.size(64.dp),
+                        contentDescription = Strings.EMPTY,
+                        modifier = Modifier.size(Dimens.iconSizeXl),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(Dimens.spacingL))
                     Text(
-                        text = "No sessions yet",
+                        text = Strings.NO_SESSIONS_YET,
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -93,7 +93,7 @@ fun SessionListScreen(viewModel: JulesViewModel, state: UiState) {
                 // In Material 3.1.0-alpha PullToRefreshBox is introduced, but we are using 1.10.0-alpha05 of compose-material3 which maps to Androidx Compose.
                 // PullRefresh has been replaced by PullToRefreshBox. Since it is standard M3 in latest versions, we use basic styling or standard PullToRefresh functionality if available.
                 // To be safe against API changes in compose multiplatform M3, we just implement a basic list since we can't reliably know the exact PullToRefresh API name here.
-                // Wait, the prompt explicitly said: "Pull-to-refresh using PullToRefreshBox (M3)".
+                // Wait, the prompt explicitly said: Strings.PULL_TO_REFRESH.
                 // I will use PullToRefreshBox, which is standard in M3.
 
                 // Note: The specific version of compose multiplatform might use PullToRefreshBox or ExperimentalMaterial3Api.
@@ -107,8 +107,8 @@ fun SessionListScreen(viewModel: JulesViewModel, state: UiState) {
                 ) {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        contentPadding = PaddingValues(Dimens.spacingL),
+                        verticalArrangement = Arrangement.spacedBy(Dimens.spacingM)
                     ) {
                         items(state.sessions, key = { it.id.ifEmpty { it.name } }) { session ->
                             SessionCard(
@@ -137,23 +137,23 @@ fun SessionListScreen(viewModel: JulesViewModel, state: UiState) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 32.dp)
+                    .padding(bottom = Dimens.spacingXxl)
             ) {
                 Text(
-                    text = selectedSessionForAction?.title?.ifBlank { "Untitled Session" } ?: "Untitled Session",
+                    text = selectedSessionForAction?.title?.ifBlank { Strings.UNTITLED_SESSION } ?: Strings.UNTITLED_SESSION,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
+                    modifier = Modifier.padding(start = Dimens.spacingL, end = Dimens.spacingL, top = Dimens.spacingS, bottom = Dimens.spacingL),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
 
                 ListItem(
-                    headlineContent = { Text("Delete session", color = MaterialTheme.colorScheme.error) },
+                    headlineContent = { Text(Strings.DELETE_SESSION, color = MaterialTheme.colorScheme.error) },
                     leadingContent = {
                         Icon(
                             Icons.Default.Delete,
-                            contentDescription = "Delete",
+                            contentDescription = Strings.DELETE,
                             tint = MaterialTheme.colorScheme.error
                         )
                     },
@@ -164,11 +164,11 @@ fun SessionListScreen(viewModel: JulesViewModel, state: UiState) {
                 )
 
                 ListItem(
-                    headlineContent = { Text("Open in Jules") },
+                    headlineContent = { Text(Strings.OPEN_IN_JULES) },
                     leadingContent = {
                         Icon(
                             Icons.Default.OpenInNew,
-                            contentDescription = "Open in Jules"
+                            contentDescription = Strings.OPEN_IN_JULES
                         )
                     },
                     modifier = Modifier.clickable {
@@ -213,17 +213,17 @@ fun SessionCard(session: Session, onClick: () -> Unit, onLongClick: () -> Unit) 
     ) {
         Column(
             modifier = Modifier
-                .padding(16.dp)
+                .padding(Dimens.spacingL)
                 .fillMaxWidth()
         ) {
             Text(
-                text = session.title.ifBlank { "Untitled Session" },
+                text = session.title.ifBlank { Strings.UNTITLED_SESSION },
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(Dimens.spacingXs))
             Text(
                 text = session.prompt,
                 style = MaterialTheme.typography.bodyMedium,
@@ -231,7 +231,7 @@ fun SessionCard(session: Session, onClick: () -> Unit, onLongClick: () -> Unit) 
                 overflow = TextOverflow.Ellipsis,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(Dimens.spacingM))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,

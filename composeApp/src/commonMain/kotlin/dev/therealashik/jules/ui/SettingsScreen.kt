@@ -25,11 +25,11 @@ fun SettingsScreen(viewModel: JulesViewModel, state: UiState) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text(Strings.SETTINGS) },
                 navigationIcon = {
                     if (state.apiKey.isNotBlank()) {
                         IconButton(onClick = { viewModel.navigate(Screen.SessionList) }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = Strings.BACK)
                         }
                     }
                 }
@@ -40,17 +40,17 @@ fun SettingsScreen(viewModel: JulesViewModel, state: UiState) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp, vertical = 24.dp)
+                .padding(horizontal = Dimens.spacingL, vertical = Dimens.spacingXl)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(Dimens.spacingL)
         ) {
             // — API Key section —
-            Text("Jules API Key", style = MaterialTheme.typography.titleMedium)
+            Text(Strings.JULES_API_KEY, style = MaterialTheme.typography.titleMedium)
             OutlinedTextField(
                 value = apiKey,
                 onValueChange = { apiKey = it },
-                label = { Text("API Key") },
-                placeholder = { Text("Enter your Jules API key") },
+                label = { Text(Strings.API_KEY) },
+                placeholder = { Text(Strings.ENTER_YOUR_JULES_API_KEY) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = if (showKey) VisualTransformation.None else PasswordVisualTransformation(),
@@ -58,7 +58,7 @@ fun SettingsScreen(viewModel: JulesViewModel, state: UiState) {
                     IconButton(onClick = { showKey = !showKey }) {
                         Icon(
                             if (showKey) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = if (showKey) "Hide key" else "Show key"
+                            contentDescription = if (showKey) Strings.HIDE_KEY else Strings.SHOW_KEY
                         )
                     }
                 }
@@ -68,17 +68,17 @@ fun SettingsScreen(viewModel: JulesViewModel, state: UiState) {
                 modifier = Modifier.fillMaxWidth(),
                 enabled = apiKey.isNotBlank()
             ) {
-                Text("Save")
+                Text(Strings.SAVE)
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = Dimens.spacingS))
 
             // — Features section —
-            Text("Features", style = MaterialTheme.typography.titleMedium)
+            Text(Strings.FEATURES, style = MaterialTheme.typography.titleMedium)
 
             ListItem(
-                headlineContent = { Text("Prompt Gallery") },
-                supportingContent = { Text("Manage saved prompts for quick use") },
+                headlineContent = { Text(Strings.PROMPT_GALLERY) },
+                supportingContent = { Text(Strings.MANAGE_SAVED_PROMPTS_FOR_QUICK_USE) },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent)
             )
@@ -86,19 +86,19 @@ fun SettingsScreen(viewModel: JulesViewModel, state: UiState) {
                 onClick = { viewModel.navigate(Screen.PromptGallery) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Open Prompt Gallery")
+                Text(Strings.OPEN_PROMPT_GALLERY)
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = Dimens.spacingS))
 
             // — Customization section —
-            Text("Customization", style = MaterialTheme.typography.titleMedium)
+            Text(Strings.CUSTOMIZATION, style = MaterialTheme.typography.titleMedium)
 
             // Theme selector
-            Text("Theme", style = MaterialTheme.typography.labelLarge)
+            Text(Strings.THEME, style = MaterialTheme.typography.labelLarge)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spacingS)
             ) {
                 ThemePreference.entries.forEach { pref ->
                     FilterChip(
@@ -111,7 +111,7 @@ fun SettingsScreen(viewModel: JulesViewModel, state: UiState) {
 
             // Page size slider
             Text(
-                "Page size: ${state.pageSize}",
+                "${Strings.PAGE_SIZE}${state.pageSize}",
                 style = MaterialTheme.typography.labelLarge
             )
             Slider(

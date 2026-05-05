@@ -24,10 +24,10 @@ fun PromptGalleryScreen(viewModel: JulesViewModel, state: UiState) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Prompt Gallery") },
+                title = { Text(Strings.PROMPT_GALLERY) },
                 navigationIcon = {
                     IconButton(onClick = { viewModel.navigate(Screen.Settings) }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = Strings.BACK)
                     }
                 }
             )
@@ -35,22 +35,22 @@ fun PromptGalleryScreen(viewModel: JulesViewModel, state: UiState) {
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { showAddDialog = true },
-                icon = { Icon(Icons.Filled.Add, contentDescription = "Add prompt") },
-                text = { Text("Add Prompt") }
+                icon = { Icon(Icons.Filled.Add, contentDescription = Strings.ADD_PROMPT_LOWER) },
+                text = { Text(Strings.ADD_PROMPT) }
             )
         }
     ) { paddingValues ->
         if (state.promptItems.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
-                Text("No prompts saved yet.", style = MaterialTheme.typography.bodyLarge)
+                Text(Strings.NO_PROMPTS_SAVED_YET, style = MaterialTheme.typography.bodyLarge)
             }
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 contentPadding = paddingValues,
-                modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.fillMaxSize().padding(horizontal = Dimens.spacingS),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spacingS),
+                verticalArrangement = Arrangement.spacedBy(Dimens.spacingS)
             ) {
                 items(state.promptItems) { item ->
                     PromptCard(
@@ -79,7 +79,7 @@ fun PromptCard(item: PromptItem, onDelete: () -> Unit) {
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp).fillMaxWidth()
+            modifier = Modifier.padding(Dimens.spacingL).fillMaxWidth()
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -93,16 +93,16 @@ fun PromptCard(item: PromptItem, onDelete: () -> Unit) {
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
-                IconButton(onClick = onDelete, modifier = Modifier.size(24.dp).padding(start = 8.dp)) {
+                IconButton(onClick = onDelete, modifier = Modifier.size(Dimens.spacingXl).padding(start = Dimens.spacingS)) {
                     Icon(
                         imageVector = Icons.Filled.Delete,
-                        contentDescription = "Delete",
+                        contentDescription = Strings.DELETE,
                         tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(Dimens.iconSizeMedium)
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(Dimens.spacingS))
             Text(
                 text = item.prompt,
                 style = MaterialTheme.typography.bodyMedium,
@@ -120,20 +120,20 @@ fun AddPromptDialog(onDismiss: () -> Unit, onSave: (String, String) -> Unit) {
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Prompt") },
+        title = { Text(Strings.ADD_PROMPT) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Dimens.spacingS)) {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Title") },
+                    label = { Text(Strings.TITLE) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = prompt,
                     onValueChange = { prompt = it },
-                    label = { Text("Prompt") },
+                    label = { Text(Strings.PROMPT) },
                     minLines = 3,
                     maxLines = 5,
                     modifier = Modifier.fillMaxWidth()
@@ -145,12 +145,12 @@ fun AddPromptDialog(onDismiss: () -> Unit, onSave: (String, String) -> Unit) {
                 onClick = { onSave(title, prompt) },
                 enabled = title.isNotBlank() && prompt.isNotBlank()
             ) {
-                Text("Save")
+                Text(Strings.SAVE)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(Strings.CANCEL)
             }
         }
     )

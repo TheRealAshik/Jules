@@ -35,10 +35,10 @@ fun CreateSessionScreen(viewModel: JulesViewModel, state: UiState) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("New Session") },
+                title = { Text(Strings.NEW_SESSION) },
                 navigationIcon = {
                     IconButton(onClick = { viewModel.navigate(Screen.SessionList) }) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = Strings.BACK)
                     }
                 }
             )
@@ -48,18 +48,18 @@ fun CreateSessionScreen(viewModel: JulesViewModel, state: UiState) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
+                .padding(Dimens.spacingL)
         ) {
             AnimatedVisibility(visible = true) {
                 Column {
                     OutlinedTextField(
                         value = title,
                         onValueChange = { title = it },
-                        label = { Text("Title (Optional)") },
+                        label = { Text(Strings.TITLE_OPTIONAL) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(Dimens.spacingL))
 
                     if (state.sources.isNotEmpty()) {
                         ExposedDropdownMenuBox(
@@ -67,7 +67,7 @@ fun CreateSessionScreen(viewModel: JulesViewModel, state: UiState) {
                             onExpandedChange = { sourceDropdownExpanded = !sourceDropdownExpanded }
                         ) {
                             OutlinedTextField(
-                                value = selectedSource?.name ?: "Select Repository (Optional)",
+                                value = selectedSource?.name ?: Strings.SELECT_REPOSITORY_OPTIONAL,
                                 onValueChange = {},
                                 readOnly = true,
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = sourceDropdownExpanded) },
@@ -78,7 +78,7 @@ fun CreateSessionScreen(viewModel: JulesViewModel, state: UiState) {
                                 onDismissRequest = { sourceDropdownExpanded = false }
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text("None") },
+                                    text = { Text(Strings.NONE) },
                                     onClick = {
                                         selectedSource = null
                                         selectedBranch = null
@@ -97,7 +97,7 @@ fun CreateSessionScreen(viewModel: JulesViewModel, state: UiState) {
                                 }
                             }
                         }
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(Dimens.spacingL))
 
                         val branches = selectedSource?.githubRepo?.branches
                         if (!branches.isNullOrEmpty()) {
@@ -106,7 +106,7 @@ fun CreateSessionScreen(viewModel: JulesViewModel, state: UiState) {
                                 onExpandedChange = { branchDropdownExpanded = !branchDropdownExpanded }
                             ) {
                                 OutlinedTextField(
-                                    value = selectedBranch?.displayName ?: "Select Branch",
+                                    value = selectedBranch?.displayName ?: Strings.SELECT_BRANCH,
                                     onValueChange = {},
                                     readOnly = true,
                                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = branchDropdownExpanded) },
@@ -127,7 +127,7 @@ fun CreateSessionScreen(viewModel: JulesViewModel, state: UiState) {
                                     }
                                 }
                             }
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(Dimens.spacingL))
                         }
                     }
 
@@ -136,18 +136,18 @@ fun CreateSessionScreen(viewModel: JulesViewModel, state: UiState) {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Prompt", style = MaterialTheme.typography.titleMedium)
+                        Text(Strings.PROMPT, style = MaterialTheme.typography.titleMedium)
                         TextButton(onClick = { showGalleryDialog = true }) {
-                            Icon(Icons.Filled.Bookmarks, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Add from Gallery")
+                            Icon(Icons.Filled.Bookmarks, contentDescription = null, modifier = Modifier.size(Dimens.bubbleCornerRadius))
+                            Spacer(modifier = Modifier.width(Dimens.spacingXs))
+                            Text(Strings.ADD_FROM_GALLERY)
                         }
                     }
 
                     if (state.selectedGalleryPrompts.isNotEmpty()) {
                         FlowRow(
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            modifier = Modifier.fillMaxWidth().padding(bottom = Dimens.spacingS),
+                            horizontalArrangement = Arrangement.spacedBy(Dimens.spacingS)
                         ) {
                             state.selectedGalleryPrompts.forEach { item ->
                                 InputChip(
@@ -157,8 +157,8 @@ fun CreateSessionScreen(viewModel: JulesViewModel, state: UiState) {
                                     trailingIcon = {
                                         Icon(
                                             Icons.Filled.Close,
-                                            contentDescription = "Remove",
-                                            modifier = Modifier.size(16.dp)
+                                            contentDescription = Strings.REMOVE,
+                                            modifier = Modifier.size(Dimens.spacingL)
                                         )
                                     }
                                 )
@@ -174,9 +174,9 @@ fun CreateSessionScreen(viewModel: JulesViewModel, state: UiState) {
                             .weight(1f),
                         minLines = 5,
                         maxLines = 10,
-                        placeholder = { Text("What would you like me to do?") }
+                        placeholder = { Text(Strings.WHAT_WOULD_YOU_LIKE_ME_TO_DO) }
                     )
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(Dimens.spacingXl))
                     FilledTonalButton(
                         onClick = {
                             val sourceContext = selectedSource?.let { src ->
@@ -191,21 +191,21 @@ fun CreateSessionScreen(viewModel: JulesViewModel, state: UiState) {
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp),
+                            .height(Dimens.createButtonHeight),
                         enabled = (prompt.isNotBlank() || state.selectedGalleryPrompts.isNotEmpty()) && !state.isLoading
                     ) {
                         if (state.isLoading) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
+                                modifier = Modifier.size(Dimens.spacingXl),
                                 color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                strokeWidth = 2.dp
+                                strokeWidth = Dimens.spacingXxs
                             )
                         } else {
-                            Text("Create")
+                            Text(Strings.CREATE)
                         }
                     }
                     if (state.isLoading) {
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(Dimens.spacingS))
                         LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     }
                 }
@@ -215,23 +215,23 @@ fun CreateSessionScreen(viewModel: JulesViewModel, state: UiState) {
         if (showGalleryDialog) {
             AlertDialog(
                 onDismissRequest = { showGalleryDialog = false },
-                title = { Text("Select Prompts") },
+                title = { Text(Strings.SELECT_PROMPTS) },
                 text = {
                     if (state.promptItems.isEmpty()) {
-                        Text("No prompts in gallery.")
+                        Text(Strings.NO_PROMPTS_IN_GALLERY)
                     } else {
                         LazyColumn {
                             items(state.promptItems) { item ->
                                 val isSelected = state.selectedGalleryPrompts.contains(item)
                                 Row(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.spacingXs),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Checkbox(
                                         checked = isSelected,
                                         onCheckedChange = { viewModel.toggleGalleryPrompt(item) }
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Spacer(modifier = Modifier.width(Dimens.spacingS))
                                     Text(item.title)
                                 }
                             }
@@ -240,7 +240,7 @@ fun CreateSessionScreen(viewModel: JulesViewModel, state: UiState) {
                 },
                 confirmButton = {
                     TextButton(onClick = { showGalleryDialog = false }) {
-                        Text("Done")
+                        Text(Strings.DONE)
                     }
                 }
             )
