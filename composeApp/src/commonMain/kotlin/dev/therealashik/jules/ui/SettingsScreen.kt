@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,6 +64,23 @@ fun SettingsScreen(viewModel: JulesViewModel, state: UiState) {
                 enabled = apiKey.isNotBlank()
             ) {
                 Text("Save")
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            Text("Features", style = MaterialTheme.typography.titleMedium)
+
+            ListItem(
+                headlineContent = { Text("Prompt Gallery") },
+                supportingContent = { Text("Manage saved prompts for quick use") },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+            )
+            FilledTonalButton(
+                onClick = { viewModel.navigate(Screen.PromptGallery) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Open Prompt Gallery")
             }
         }
     }

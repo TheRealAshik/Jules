@@ -18,6 +18,8 @@ import dev.therealashik.jules.ui.Screen
 import dev.therealashik.jules.ui.SessionDetailScreen
 import dev.therealashik.jules.ui.SessionListScreen
 import dev.therealashik.jules.ui.SettingsScreen
+import dev.therealashik.jules.ui.PromptGalleryScreen
+import dev.therealashik.jules.gallery.PromptGalleryRepository
 
 // A purple seed color fallback
 private val LightColorScheme = lightColorScheme(
@@ -73,9 +75,10 @@ fun App() {
 
     MaterialTheme(colorScheme = colorScheme) {
         val store = remember { KeyValueStore() }
+        val promptGalleryRepository = remember { PromptGalleryRepository(store) }
         val savedKey = remember { store.getString("api_key") }
         val apiClient = remember { JulesApiClient(savedKey) }
-        val viewModel = viewModel { JulesViewModel(apiClient, savedKey, store) }
+        val viewModel = viewModel { JulesViewModel(apiClient, savedKey, store, promptGalleryRepository) }
         val state by viewModel.state.collectAsState()
 
         Surface(color = MaterialTheme.colorScheme.background) {
@@ -84,6 +87,7 @@ fun App() {
                 is Screen.CreateSession -> CreateSessionScreen(viewModel, state)
                 is Screen.SessionDetail -> SessionDetailScreen(viewModel, state, screen)
                 is Screen.Settings -> SettingsScreen(viewModel, state)
+                is Screen.PromptGallery -> PromptGalleryScreen(viewModel, state)
             }
         }
     }

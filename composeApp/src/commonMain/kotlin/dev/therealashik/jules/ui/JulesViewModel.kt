@@ -12,16 +12,22 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+import dev.therealashik.jules.gallery.PromptGalleryRepository
+import dev.therealashik.jules.gallery.PromptItem
+
 sealed interface Screen {
     data object SessionList : Screen
     data object CreateSession : Screen
     data class SessionDetail(val sessionId: String, val title: String, val prompt: String = "") : Screen
     data object Settings : Screen
+    data object PromptGallery : Screen
 }
 
 data class UiState(
     val sessions: List<Session> = emptyList(),
     val activities: List<Activity> = emptyList(),
+    val promptItems: List<PromptItem> = emptyList(),
+    val selectedGalleryPrompts: List<PromptItem> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
     val screen: Screen = Screen.SessionList,
@@ -33,7 +39,8 @@ private fun String.normalizeSessionId() = substringAfter("sessions/").takeIf { i
 class JulesViewModel(
     private var apiClient: JulesApiClient,
     initialApiKey: String = "",
-    private val store: KeyValueStore? = null
+    private val store: KeyValueStore? = null,
+    private val promptGalleryRepository: PromptGalleryRepository? = null
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(
@@ -53,12 +60,45 @@ class JulesViewModel(
     }
 
     fun navigate(screen: Screen) {
+        if (screen !is Screen.CreateSession) {
+            _state.update { it.copy(selectedGalleryPrompts = emptyList()) }
+        }
         _state.update { it.copy(screen = screen, error = null) }
         when (screen) {
             is Screen.SessionList -> loadSessions()
             is Screen.SessionDetail -> loadActivities(screen.sessionId)
-            Screen.CreateSession, Screen.Settings -> Unit
+            is Screen.PromptGallery -> loadPrompts()
+            Screen.CreateSession -> loadPrompts()
+            Screen.Settings -> Unit
         }
+    }
+
+    fun toggleGalleryPrompt(item: PromptItem) {
+        _state.update { state ->
+            val current = state.selectedGalleryPrompts.toMutableList()
+            if (current.contains(item)) {
+                current.remove(item)
+            } else {
+                current.add(item)
+            }
+            state.copy(selectedGalleryPrompts = current)
+        }
+    }
+
+    fun loadPrompts() {
+        val prompts = promptGalleryRepository?.getAll() ?: emptyList()
+        _state.update { it.copy(promptItems = prompts) }
+    }
+
+    fun savePrompt(title: String, prompt: String) {
+        val id = title.hashCode().toString() + "_" + prompt.hashCode().toString()
+        promptGalleryRepository?.save(PromptItem(id, title, prompt))
+        loadPrompts()
+    }
+
+    fun deletePrompt(id: String) {
+        promptGalleryRepository?.delete(id)
+        loadPrompts()
     }
 
     fun loadSessions() {
@@ -76,14 +116,21 @@ class JulesViewModel(
     }
 
     fun createSession(prompt: String, title: String) {
+        val selectedPromptsText = state.value.selectedGalleryPrompts.joinToString("\n\n") { it.prompt }
+        val finalPrompt = if (selectedPromptsText.isNotBlank()) {
+            if (prompt.isNotBlank()) "$selectedPromptsText\n\n$prompt" else selectedPromptsText
+        } else {
+            prompt
+        }
+
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             try {
                 val session = apiClient.createSession(
-                    CreateSessionRequest(prompt = prompt, title = title.takeIf { it.isNotBlank() })
+                    CreateSessionRequest(prompt = finalPrompt, title = title.takeIf { it.isNotBlank() })
                 )
                 _state.update { it.copy(isLoading = false) }
-                navigate(Screen.SessionDetail(session.name.normalizeSessionId(), session.title, prompt))
+                navigate(Screen.SessionDetail(session.name.normalizeSessionId(), session.title, finalPrompt))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
