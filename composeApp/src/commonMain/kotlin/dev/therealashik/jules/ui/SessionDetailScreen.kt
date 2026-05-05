@@ -30,6 +30,16 @@ import com.mikepenz.markdown.m3.Markdown
 import com.mikepenz.markdown.m3.markdownColor
 import com.mikepenz.markdown.m3.markdownTypography
 
+private val ATTACHMENT_ITEMS = listOf(
+    Triple(Icons.Default.Image, "Images", "Create and edit"),
+    Triple(Icons.Default.Movie, "Videos", "Bring ideas to life"),
+    Triple(Icons.Default.MusicNote, "Music", "Make audio tracks"),
+    Triple(Icons.Default.Brush, "Canvas", "Code, write, or make slides"),
+    Triple(Icons.Default.Search, "Deep research", "Get detailed reports"),
+    Triple(Icons.AutoMirrored.Filled.MenuBook, "Guided learning", "Get step-by-step help"),
+    Triple(Icons.Default.MoreHoriz, "More uploads", "Files, Notebooks, and more")
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SessionDetailScreen(viewModel: JulesViewModel, state: UiState, screen: Screen.SessionDetail) {
@@ -173,17 +183,7 @@ fun SessionDetailScreen(viewModel: JulesViewModel, state: UiState, screen: Scree
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-                val items = listOf(
-                    Triple(Icons.Default.Image, "Images", "Create and edit"),
-                    Triple(Icons.Default.Movie, "Videos", "Bring ideas to life"),
-                    Triple(Icons.Default.MusicNote, "Music", "Make audio tracks"),
-                    Triple(Icons.Default.Brush, "Canvas", "Code, write, or make slides"),
-                    Triple(Icons.Default.Search, "Deep research", "Get detailed reports"),
-                    Triple(Icons.AutoMirrored.Filled.MenuBook, "Guided learning", "Get step-by-step help"),
-                    Triple(Icons.Default.MoreHoriz, "More uploads", "Files, Notebooks, and more")
-                )
-
-                items.forEach { (icon, title, subtitle) ->
+                ATTACHMENT_ITEMS.forEach { (icon, title, subtitle) ->
                     ListItem(
                         headlineContent = { Text(title) },
                         supportingContent = { Text(subtitle) },
