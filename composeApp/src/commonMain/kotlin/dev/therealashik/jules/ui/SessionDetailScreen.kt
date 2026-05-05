@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import dev.therealashik.jules.sdk.models.Activity
 import dev.therealashik.jules.sdk.models.PullRequest
@@ -127,10 +128,17 @@ fun SessionDetailScreen(viewModel: JulesViewModel, state: UiState, screen: Scree
                                         shape = RoundedCornerShape(18.dp, 18.dp, 4.dp, 18.dp),
                                         modifier = Modifier.padding(start = 32.dp)
                                     ) {
-                                        Text(
-                                            text = screen.prompt,
+                                        Markdown(
+                                            content = screen.prompt,
                                             modifier = Modifier.padding(12.dp),
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                            colors = markdownColor(
+                                                text = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                codeBackground = MaterialTheme.colorScheme.primaryContainer,
+                                            ),
+                                            typography = markdownTypography(
+                                                text = MaterialTheme.typography.bodyMedium,
+                                                code = MaterialTheme.typography.bodySmall,
+                                            )
                                         )
                                     }
                                 }
@@ -337,10 +345,17 @@ fun ChatBubble(activity: Activity) {
                         shape = RoundedCornerShape(18.dp, 18.dp, 4.dp, 18.dp),
                         modifier = Modifier.padding(start = 32.dp)
                     ) {
-                        Text(
-                            text = userMessaged.userMessage,
+                        Markdown(
+                            content = userMessaged.userMessage,
                             modifier = Modifier.padding(12.dp),
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            colors = markdownColor(
+                                text = MaterialTheme.colorScheme.onPrimaryContainer,
+                                codeBackground = MaterialTheme.colorScheme.primaryContainer,
+                            ),
+                            typography = markdownTypography(
+                                text = MaterialTheme.typography.bodyMedium,
+                                code = MaterialTheme.typography.bodySmall,
+                            )
                         )
                     }
                 }
@@ -612,10 +627,14 @@ fun GitPatchCard(gitPatch: GitPatch) {
 
 @Composable
 fun PullRequestCard(pr: PullRequest) {
-    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+    val uriHandler = LocalUriHandler.current
+    OutlinedCard(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = { uriHandler.openUri(pr.url) }
+    ) {
         Row(
             modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Top
         ) {
             Icon(
                 Icons.Default.MergeType,
