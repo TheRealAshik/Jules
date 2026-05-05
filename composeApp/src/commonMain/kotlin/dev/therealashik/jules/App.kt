@@ -20,6 +20,7 @@ import dev.therealashik.jules.ui.SessionListScreen
 import dev.therealashik.jules.ui.SettingsScreen
 import dev.therealashik.jules.ui.PromptGalleryScreen
 import dev.therealashik.jules.gallery.PromptGalleryRepository
+import dev.therealashik.jules.ui.ThemePreference
 
 // A purple seed color fallback
 private val LightColorScheme = lightColorScheme(
@@ -70,17 +71,22 @@ private val DarkColorScheme = darkColorScheme(
 
 @Composable
 fun App() {
-    val darkTheme = isSystemInDarkTheme()
+    val store = remember { KeyValueStore() }
+    val promptGalleryRepository = remember { PromptGalleryRepository(store) }
+    val savedKey = remember { store.getString("api_key") }
+    val apiClient = remember { JulesApiClient(savedKey) }
+    val viewModel = viewModel { JulesViewModel(apiClient, savedKey, store, promptGalleryRepository) }
+    val state by viewModel.state.collectAsState()
+
+    val systemDark = isSystemInDarkTheme()
+    val darkTheme = when (state.themePreference) {
+        ThemePreference.LIGHT -> false
+        ThemePreference.DARK -> true
+        ThemePreference.SYSTEM -> systemDark
+    }
     val colorScheme = getAppColorScheme(darkTheme)
 
     MaterialTheme(colorScheme = colorScheme) {
-        val store = remember { KeyValueStore() }
-        val promptGalleryRepository = remember { PromptGalleryRepository(store) }
-        val savedKey = remember { store.getString("api_key") }
-        val apiClient = remember { JulesApiClient(savedKey) }
-        val viewModel = viewModel { JulesViewModel(apiClient, savedKey, store, promptGalleryRepository) }
-        val state by viewModel.state.collectAsState()
-
         Surface(color = MaterialTheme.colorScheme.background) {
             when (val screen = state.screen) {
                 is Screen.SessionList -> SessionListScreen(viewModel, state)

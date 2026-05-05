@@ -23,6 +23,8 @@ sealed interface Screen {
     data object PromptGallery : Screen
 }
 
+enum class ThemePreference { SYSTEM, LIGHT, DARK }
+
 data class UiState(
     val sessions: List<Session> = emptyList(),
     val sessionsById: Map<String, Session> = emptyMap(),
@@ -33,7 +35,9 @@ data class UiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val screen: Screen = Screen.SessionList,
-    val apiKey: String = ""
+    val apiKey: String = "",
+    val themePreference: ThemePreference = ThemePreference.SYSTEM,
+    val pageSize: Int = 30
 )
 
 private fun String.normalizeSessionId() = substringAfter("sessions/").takeIf { it.isNotBlank() } ?: this
@@ -45,10 +49,18 @@ class JulesViewModel(
     private val promptGalleryRepository: PromptGalleryRepository? = null
 ) : ViewModel() {
 
+    private val initialTheme = store?.getString("theme_preference")
+        ?.let { runCatching { ThemePreference.valueOf(it) }.getOrNull() }
+        ?: ThemePreference.SYSTEM
+    private val initialPageSize = store?.getString("page_size")
+        ?.toIntOrNull()?.coerceIn(10, 100) ?: 30
+
     private val _state = MutableStateFlow(
         UiState(
             apiKey = initialApiKey,
-            screen = if (initialApiKey.isBlank()) Screen.Settings else Screen.SessionList
+            screen = if (initialApiKey.isBlank()) Screen.Settings else Screen.SessionList,
+            themePreference = initialTheme,
+            pageSize = initialPageSize
         )
     )
     val state: StateFlow<UiState> = _state.asStateFlow()
@@ -59,6 +71,16 @@ class JulesViewModel(
         apiClient = JulesApiClient(key)
         _state.update { it.copy(apiKey = key) }
         navigate(Screen.SessionList)
+    }
+
+    fun saveThemePreference(theme: ThemePreference) {
+        store?.putString("theme_preference", theme.name)
+        _state.update { it.copy(themePreference = theme) }
+    }
+
+    fun savePageSize(size: Int) {
+        store?.putString("page_size", size.toString())
+        _state.update { it.copy(pageSize = size) }
     }
 
     fun navigate(screen: Screen) {
@@ -123,7 +145,7 @@ class JulesViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             try {
-                val response = apiClient.listSessions()
+                val response = apiClient.listSessions(pageSize = _state.value.pageSize)
                 val sessionsById = response.sessions.associateBy { it.id } +
                     response.sessions.associateBy { it.name.normalizeSessionId() }
                 _state.update { it.copy(isLoading = false, sessions = response.sessions, sessionsById = sessionsById) }
@@ -167,7 +189,7 @@ class JulesViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             try {
-                val response = apiClient.listActivities(sessionId.normalizeSessionId())
+                val response = apiClient.listActivities(sessionId.normalizeSessionId(), pageSize = _state.value.pageSize)
                 _state.update { it.copy(isLoading = false, activities = response.activities) }
             } catch (e: CancellationException) {
                 throw e
