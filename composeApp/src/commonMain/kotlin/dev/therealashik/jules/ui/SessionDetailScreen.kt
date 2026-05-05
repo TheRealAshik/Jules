@@ -95,8 +95,8 @@ fun SessionDetailScreen(viewModel: JulesViewModel, state: UiState, screen: Scree
                     EmptyState(title = screen.title)
                 } else {
                     val reversedActivities = remember(state.activities) { state.activities.reversed() }
-                    val pullRequests = remember(state.sessions, screen.sessionId) {
-                        state.sessions.find { it.name.contains(screen.sessionId) || it.id == screen.sessionId }
+                    val pullRequests = remember(state.sessionsById, screen.sessionId) {
+                        state.sessionsById[screen.sessionId]
                             ?.outputs?.mapNotNull { it.pullRequest }?.filter { it.url.isNotBlank() }
                             ?: emptyList()
                     }
