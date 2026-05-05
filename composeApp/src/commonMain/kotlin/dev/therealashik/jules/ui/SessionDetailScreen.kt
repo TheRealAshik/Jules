@@ -29,6 +29,9 @@ import dev.therealashik.jules.sdk.models.PullRequest
 import com.mikepenz.markdown.m3.Markdown
 import com.mikepenz.markdown.m3.markdownColor
 import com.mikepenz.markdown.m3.markdownTypography
+import dev.therealashik.jules.sdk.models.GitPatch
+import dev.therealashik.jules.sdk.models.BashOutput
+import androidx.compose.ui.text.font.FontFamily
 
 private val ATTACHMENT_ITEMS = listOf(
     Triple(Icons.Default.Image, "Images", "Create and edit"),
@@ -193,6 +196,82 @@ fun SessionDetailScreen(viewModel: JulesViewModel, state: UiState, screen: Scree
                     )
                 }
             }
+
+        }
+    }
+}
+
+@Composable
+fun BashOutputCard(bashOutput: BashOutput) {
+    var expanded by remember { mutableStateOf(false) }
+    OutlinedCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.Terminal,
+                    contentDescription = "Bash",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.width(8.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Bash", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                    if (bashOutput.command.isNotBlank()) {
+                        Text(
+                            bashOutput.command,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                Spacer(Modifier.width(8.dp))
+                Surface(
+                    color = if (bashOutput.exitCode == 0) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer,
+                    shape = RoundedCornerShape(4.dp)
+                ) {
+                    Text(
+                        bashOutput.exitCode.toString(),
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (bashOutput.exitCode == 0) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+                Spacer(Modifier.width(4.dp))
+                Icon(
+                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            AnimatedVisibility(visible = expanded) {
+                Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)) {
+                    HorizontalDivider()
+                    Spacer(Modifier.height(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 200.dp)
+                            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
+                            .verticalScroll(rememberScrollState())
+                            .padding(8.dp)
+                    ) {
+                        Text(
+                            text = bashOutput.output,
+                            fontFamily = FontFamily.Monospace,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -247,7 +326,7 @@ fun ChatBubble(activity: Activity) {
         val userMessaged = activity.userMessaged
         val planGenerated = activity.planGenerated?.plan
 
-        Box(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             if (userMessaged != null) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -408,7 +487,7 @@ fun ChatBubble(activity: Activity) {
                     Spacer(Modifier.width(4.dp))
                     Text(activity.description.ifBlank { "Plan approved" }, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
                 }
-            } else {
+            } else if (activity.artifacts.isEmpty()) {
                 val label = activity.description.ifBlank { null }
                 if (label != null) {
                     Text(
@@ -418,6 +497,85 @@ fun ChatBubble(activity: Activity) {
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center
                     )
+                }
+            }
+
+            if (activity.artifacts.isNotEmpty()) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    activity.artifacts.forEach { artifact ->
+                        artifact.changeSet?.gitPatch?.let { gitPatch ->
+                            GitPatchCard(gitPatch)
+                        }
+                        artifact.bashOutput?.let { bashOutput ->
+                            BashOutputCard(bashOutput)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun GitPatchCard(gitPatch: GitPatch) {
+    var expanded by remember { mutableStateOf(false) }
+    OutlinedCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.AccountTree,
+                    contentDescription = "Git Patch",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.width(8.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Git Patch", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                    if (gitPatch.suggestedCommitMessage.isNotBlank()) {
+                        Text(
+                            gitPatch.suggestedCommitMessage,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                Spacer(Modifier.width(4.dp))
+                Icon(
+                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            AnimatedVisibility(visible = expanded) {
+                Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)) {
+                    HorizontalDivider()
+                    Spacer(Modifier.height(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 240.dp)
+                            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
+                            .verticalScroll(rememberScrollState())
+                            .padding(8.dp)
+                    ) {
+                        Text(
+                            text = gitPatch.unidiffPatch,
+                            fontFamily = FontFamily.Monospace,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
             }
         }
