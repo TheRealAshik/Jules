@@ -14,6 +14,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.therealashik.jules.gallery.PromptItem
+import dev.therealashik.jules.sdk.models.Source
+import dev.therealashik.jules.sdk.models.GitHubBranch
+import dev.therealashik.jules.sdk.models.SourceContext
+import dev.therealashik.jules.sdk.models.GitHubRepoContext
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -21,6 +25,12 @@ fun CreateSessionScreen(viewModel: JulesViewModel, state: UiState) {
     var title by remember { mutableStateOf("") }
     var prompt by remember { mutableStateOf("") }
     var showGalleryDialog by remember { mutableStateOf(false) }
+
+    var selectedSource by remember { mutableStateOf<Source?>(null) }
+    var selectedBranch by remember { mutableStateOf<GitHubBranch?>(null) }
+
+    var sourceDropdownExpanded by remember { mutableStateOf(false) }
+    var branchDropdownExpanded by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -50,6 +60,76 @@ fun CreateSessionScreen(viewModel: JulesViewModel, state: UiState) {
                         singleLine = true
                     )
                     Spacer(modifier = Modifier.height(16.dp))
+
+                    if (state.sources.isNotEmpty()) {
+                        ExposedDropdownMenuBox(
+                            expanded = sourceDropdownExpanded,
+                            onExpandedChange = { sourceDropdownExpanded = !sourceDropdownExpanded }
+                        ) {
+                            OutlinedTextField(
+                                value = selectedSource?.name ?: "Select Repository (Optional)",
+                                onValueChange = {},
+                                readOnly = true,
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = sourceDropdownExpanded) },
+                                modifier = Modifier.menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryEditable).fillMaxWidth()
+                            )
+                            ExposedDropdownMenu(
+                                expanded = sourceDropdownExpanded,
+                                onDismissRequest = { sourceDropdownExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("None") },
+                                    onClick = {
+                                        selectedSource = null
+                                        selectedBranch = null
+                                        sourceDropdownExpanded = false
+                                    }
+                                )
+                                state.sources.forEach { source ->
+                                    DropdownMenuItem(
+                                        text = { Text(source.name) },
+                                        onClick = {
+                                            selectedSource = source
+                                            selectedBranch = source.githubRepo?.defaultBranch
+                                            sourceDropdownExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        val branches = selectedSource?.githubRepo?.branches
+                        if (!branches.isNullOrEmpty()) {
+                            ExposedDropdownMenuBox(
+                                expanded = branchDropdownExpanded,
+                                onExpandedChange = { branchDropdownExpanded = !branchDropdownExpanded }
+                            ) {
+                                OutlinedTextField(
+                                    value = selectedBranch?.displayName ?: "Select Branch",
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = branchDropdownExpanded) },
+                                    modifier = Modifier.menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryEditable).fillMaxWidth()
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = branchDropdownExpanded,
+                                    onDismissRequest = { branchDropdownExpanded = false }
+                                ) {
+                                    branches.forEach { branch ->
+                                        DropdownMenuItem(
+                                            text = { Text(branch.displayName) },
+                                            onClick = {
+                                                selectedBranch = branch
+                                                branchDropdownExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+                    }
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -98,7 +178,17 @@ fun CreateSessionScreen(viewModel: JulesViewModel, state: UiState) {
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                     FilledTonalButton(
-                        onClick = { viewModel.createSession(prompt, title) },
+                        onClick = {
+                            val sourceContext = selectedSource?.let { src ->
+                                SourceContext(
+                                    source = src.name,
+                                    githubRepoContext = selectedBranch?.let { branch ->
+                                        GitHubRepoContext(startingBranch = branch.displayName)
+                                    }
+                                )
+                            }
+                            viewModel.createSession(prompt, title, sourceContext)
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),

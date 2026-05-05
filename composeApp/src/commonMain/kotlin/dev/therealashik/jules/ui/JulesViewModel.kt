@@ -28,6 +28,7 @@ data class UiState(
     val activities: List<Activity> = emptyList(),
     val promptItems: List<PromptItem> = emptyList(),
     val selectedGalleryPrompts: List<PromptItem> = emptyList(),
+    val sources: List<Source> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
     val screen: Screen = Screen.SessionList,
@@ -68,8 +69,24 @@ class JulesViewModel(
             is Screen.SessionList -> loadSessions()
             is Screen.SessionDetail -> loadActivities(screen.sessionId)
             is Screen.PromptGallery -> loadPrompts()
-            Screen.CreateSession -> loadPrompts()
+            Screen.CreateSession -> {
+                loadPrompts()
+                loadSources()
+            }
             Screen.Settings -> Unit
+        }
+    }
+
+    fun loadSources() {
+        viewModelScope.launch {
+            try {
+                val response = apiClient.listSources()
+                _state.update { it.copy(sources = response.sources) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Ignore errors for sources
+            }
         }
     }
 
@@ -115,7 +132,7 @@ class JulesViewModel(
         }
     }
 
-    fun createSession(prompt: String, title: String) {
+    fun createSession(prompt: String, title: String, sourceContext: SourceContext? = null) {
         val selectedPromptsText = state.value.selectedGalleryPrompts.joinToString("\n\n") { it.prompt }
         val finalPrompt = if (selectedPromptsText.isNotBlank()) {
             if (prompt.isNotBlank()) "$selectedPromptsText\n\n$prompt" else selectedPromptsText
@@ -127,7 +144,11 @@ class JulesViewModel(
             _state.update { it.copy(isLoading = true, error = null) }
             try {
                 val session = apiClient.createSession(
-                    CreateSessionRequest(prompt = finalPrompt, title = title.takeIf { it.isNotBlank() })
+                    CreateSessionRequest(
+                        prompt = finalPrompt,
+                        title = title.takeIf { it.isNotBlank() },
+                        sourceContext = sourceContext
+                    )
                 )
                 _state.update { it.copy(isLoading = false) }
                 navigate(Screen.SessionDetail(session.name.normalizeSessionId(), session.title, finalPrompt))
