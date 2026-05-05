@@ -21,6 +21,7 @@ sealed interface Screen {
 
 data class UiState(
     val sessions: List<Session> = emptyList(),
+    val sessionsById: Map<String, Session> = emptyMap(),
     val activities: List<Activity> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
@@ -66,7 +67,9 @@ class JulesViewModel(
             _state.update { it.copy(isLoading = true, error = null) }
             try {
                 val response = apiClient.listSessions()
-                _state.update { it.copy(isLoading = false, sessions = response.sessions) }
+                val sessionsById = response.sessions.associateBy { it.id } +
+                    response.sessions.associateBy { it.name.normalizeSessionId() }
+                _state.update { it.copy(isLoading = false, sessions = response.sessions, sessionsById = sessionsById) }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
