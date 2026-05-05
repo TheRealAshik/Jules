@@ -15,6 +15,8 @@ class JulesApiClient(
     private val apiKey: String,
     httpClient: HttpClient? = null
 ) {
+    private val cache = InMemoryCache<String, Any>()
+
     private val client = (httpClient ?: HttpClient()).config {
         install(ContentNegotiation) {
             json(Json {
@@ -47,19 +49,31 @@ class JulesApiClient(
     }
 
     suspend fun listSessions(pageSize: Int = 30, pageToken: String? = null): ListSessionsResponse {
+        val cacheKey = "listSessions-$pageSize-$pageToken"
+        val cached = cache.get(cacheKey) as? ListSessionsResponse
+        if (cached != null) return cached
+
         val response = client.get("$baseUrl/sessions") {
             parameter("pageSize", pageSize)
             if (pageToken != null) {
                 parameter("pageToken", pageToken)
             }
         }
-        return response.bodyOrThrow()
+        return response.bodyOrThrow<ListSessionsResponse>().also {
+            cache.set(cacheKey, it)
+        }
     }
 
     suspend fun getSession(sessionId: String): Session {
+        val cacheKey = "getSession-$sessionId"
+        val cached = cache.get(cacheKey) as? Session
+        if (cached != null) return cached
+
         val response = client.get("$baseUrl/sessions/$sessionId") {
         }
-        return response.bodyOrThrow()
+        return response.bodyOrThrow<Session>().also {
+            cache.set(cacheKey, it)
+        }
     }
 
     suspend fun deleteSession(sessionId: String) {
@@ -68,38 +82,59 @@ class JulesApiClient(
         if (!response.status.isSuccess()) {
             throw Exception("API Error: ${response.status.value} - ${response.bodyAsText()}")
         }
+        cache.removeMatching { it.contains(sessionId) || it.startsWith("listSessions-") }
     }
 
     suspend fun sendMessage(sessionId: String, request: SendMessageRequest): SendMessageResponse {
         val response = client.post("$baseUrl/sessions/$sessionId:sendMessage") {
             setBody(request)
         }
-        return response.bodyOrThrow()
+        return response.bodyOrThrow<SendMessageResponse>().also {
+            cache.removeMatching { key -> key.contains(sessionId) || key.startsWith("listSessions-") }
+        }
     }
 
     suspend fun approvePlan(sessionId: String): ApprovePlanResponse {
         val response = client.post("$baseUrl/sessions/$sessionId:approvePlan") {
             setBody(ApprovePlanRequest())
         }
-        return response.bodyOrThrow()
+        return response.bodyOrThrow<ApprovePlanResponse>().also {
+            cache.removeMatching { key -> key.contains(sessionId) || key.startsWith("listSessions-") }
+        }
     }
 
     suspend fun listActivities(sessionId: String, pageSize: Int = 50, pageToken: String? = null, createTime: String? = null): ListActivitiesResponse {
+        val cacheKey = "listActivities-$sessionId-$pageSize-$pageToken-$createTime"
+        val cached = cache.get(cacheKey) as? ListActivitiesResponse
+        if (cached != null) return cached
+
         val response = client.get("$baseUrl/sessions/$sessionId/activities") {
             parameter("pageSize", pageSize)
             if (pageToken != null) parameter("pageToken", pageToken)
             if (createTime != null) parameter("createTime", createTime)
         }
-        return response.bodyOrThrow()
+        return response.bodyOrThrow<ListActivitiesResponse>().also {
+            cache.set(cacheKey, it)
+        }
     }
 
     suspend fun getActivity(sessionId: String, activityId: String): Activity {
+        val cacheKey = "getActivity-$sessionId-$activityId"
+        val cached = cache.get(cacheKey) as? Activity
+        if (cached != null) return cached
+
         val response = client.get("$baseUrl/sessions/$sessionId/activities/$activityId") {
         }
-        return response.bodyOrThrow()
+        return response.bodyOrThrow<Activity>().also {
+            cache.set(cacheKey, it)
+        }
     }
 
     suspend fun listSources(pageSize: Int = 30, pageToken: String? = null, filter: String? = null): ListSourcesResponse {
+        val cacheKey = "listSources-$pageSize-$pageToken-$filter"
+        val cached = cache.get(cacheKey) as? ListSourcesResponse
+        if (cached != null) return cached
+
         val response = client.get("$baseUrl/sources") {
             parameter("pageSize", pageSize)
             if (pageToken != null) {
@@ -109,13 +144,21 @@ class JulesApiClient(
                 parameter("filter", filter)
             }
         }
-        return response.bodyOrThrow()
+        return response.bodyOrThrow<ListSourcesResponse>().also {
+            cache.set(cacheKey, it)
+        }
     }
 
     suspend fun getSource(sourceId: String): Source {
+        val cacheKey = "getSource-$sourceId"
+        val cached = cache.get(cacheKey) as? Source
+        if (cached != null) return cached
+
         val response = client.get("$baseUrl/sources/$sourceId") {
         }
-        return response.bodyOrThrow()
+        return response.bodyOrThrow<Source>().also {
+            cache.set(cacheKey, it)
+        }
     }
 
     fun close() {

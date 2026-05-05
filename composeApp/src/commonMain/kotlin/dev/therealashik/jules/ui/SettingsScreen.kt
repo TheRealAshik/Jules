@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 fun SettingsScreen(viewModel: JulesViewModel, state: UiState) {
     var apiKey by remember { mutableStateOf(state.apiKey) }
     var showKey by remember { mutableStateOf(false) }
+    var pageSizeText by remember { mutableStateOf(state.pageSize.toString()) }
 
     Scaffold(
         topBar = {
@@ -81,6 +82,26 @@ fun SettingsScreen(viewModel: JulesViewModel, state: UiState) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Open Prompt Gallery")
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            Text("Customization", style = MaterialTheme.typography.titleMedium)
+
+            OutlinedTextField(
+                value = pageSizeText,
+                onValueChange = { pageSizeText = it.filter { char -> char.isDigit() } },
+                label = { Text("Page Size") },
+                placeholder = { Text("Enter page size (e.g. 30)") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            FilledTonalButton(
+                onClick = { viewModel.savePageSize(pageSizeText.toIntOrNull() ?: 30) },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = pageSizeText.isNotBlank() && (pageSizeText.toIntOrNull() ?: 0) > 0
+            ) {
+                Text("Save Page Size")
             }
         }
     }

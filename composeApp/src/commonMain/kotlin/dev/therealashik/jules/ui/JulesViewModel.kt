@@ -33,7 +33,8 @@ data class UiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val screen: Screen = Screen.SessionList,
-    val apiKey: String = ""
+    val apiKey: String = "",
+    val pageSize: Int = 30
 )
 
 private fun String.normalizeSessionId() = substringAfter("sessions/").takeIf { it.isNotBlank() } ?: this
@@ -48,7 +49,8 @@ class JulesViewModel(
     private val _state = MutableStateFlow(
         UiState(
             apiKey = initialApiKey,
-            screen = if (initialApiKey.isBlank()) Screen.Settings else Screen.SessionList
+            screen = if (initialApiKey.isBlank()) Screen.Settings else Screen.SessionList,
+            pageSize = store?.getString("page_size", "30")?.toIntOrNull() ?: 30
         )
     )
     val state: StateFlow<UiState> = _state.asStateFlow()
@@ -78,10 +80,16 @@ class JulesViewModel(
         }
     }
 
+    fun savePageSize(pageSize: Int) {
+        store?.putString("page_size", pageSize.toString())
+        _state.update { it.copy(pageSize = pageSize) }
+        navigate(state.value.screen)
+    }
+
     fun loadSources() {
         viewModelScope.launch {
             try {
-                val response = apiClient.listSources()
+                val response = apiClient.listSources(pageSize = state.value.pageSize)
                 _state.update { it.copy(sources = response.sources) }
             } catch (e: CancellationException) {
                 throw e
@@ -123,7 +131,7 @@ class JulesViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             try {
-                val response = apiClient.listSessions()
+                val response = apiClient.listSessions(pageSize = state.value.pageSize)
                 val sessionsById = response.sessions.associateBy { it.id } +
                     response.sessions.associateBy { it.name.normalizeSessionId() }
                 _state.update { it.copy(isLoading = false, sessions = response.sessions, sessionsById = sessionsById) }
@@ -167,7 +175,7 @@ class JulesViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             try {
-                val response = apiClient.listActivities(sessionId.normalizeSessionId())
+                val response = apiClient.listActivities(sessionId.normalizeSessionId(), pageSize = state.value.pageSize)
                 _state.update { it.copy(isLoading = false, activities = response.activities) }
             } catch (e: CancellationException) {
                 throw e
