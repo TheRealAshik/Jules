@@ -141,6 +141,20 @@ class JulesViewModel(
         loadPrompts()
     }
 
+    fun deleteSession(sessionId: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
+            try {
+                apiClient.deleteSession(sessionId)
+                loadSessions()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(isLoading = false, error = e.message ?: "Failed to delete session") }
+            }
+        }
+    }
+
     fun loadSessions() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }

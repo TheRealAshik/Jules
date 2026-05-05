@@ -1,27 +1,35 @@
 package dev.therealashik.jules.ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.therealashik.jules.sdk.models.Session
 import dev.therealashik.jules.sdk.models.SessionState
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SessionListScreen(viewModel: JulesViewModel, state: UiState) {
     val snackbarHostState = remember { SnackbarHostState() }
+    var selectedSessionForAction by remember { mutableStateOf<Session?>(null) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val uriHandler = LocalUriHandler.current
 
     LaunchedEffect(state.error) {
         state.error?.let {
@@ -108,11 +116,66 @@ fun SessionListScreen(viewModel: JulesViewModel, state: UiState) {
                                 onClick = {
                                     val sessionId = session.name.substringAfter("sessions/").takeIf { it.isNotBlank() } ?: session.id
                                     viewModel.navigate(Screen.SessionDetail(sessionId, session.title, session.prompt))
+                                },
+                                onLongClick = {
+                                    selectedSessionForAction = session
                                 }
                             )
                         }
                     }
                 }
+            }
+        }
+    }
+
+    if (selectedSessionForAction != null) {
+        ModalBottomSheet(
+            onDismissRequest = { selectedSessionForAction = null },
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp)
+            ) {
+                Text(
+                    text = selectedSessionForAction?.title?.ifBlank { "Untitled Session" } ?: "Untitled Session",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                ListItem(
+                    headlineContent = { Text("Delete session", color = MaterialTheme.colorScheme.error) },
+                    leadingContent = {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        selectedSessionForAction?.id?.let { viewModel.deleteSession(it) }
+                        selectedSessionForAction = null
+                    }
+                )
+
+                ListItem(
+                    headlineContent = { Text("Open in Jules") },
+                    leadingContent = {
+                        Icon(
+                            Icons.Default.OpenInNew,
+                            contentDescription = "Open in Jules"
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        selectedSessionForAction?.url?.takeIf { it.isNotBlank() }?.let { uriHandler.openUri(it) }
+                        selectedSessionForAction = null
+                    }
+                )
             }
         }
     }
@@ -137,12 +200,16 @@ fun PullToRefreshBox(
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun SessionCard(session: Session, onClick: () -> Unit) {
+fun SessionCard(session: Session, onClick: () -> Unit, onLongClick: () -> Unit) {
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
     ) {
         Column(
             modifier = Modifier
