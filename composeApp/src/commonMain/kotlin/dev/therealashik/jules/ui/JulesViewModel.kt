@@ -258,11 +258,11 @@ class JulesViewModel(
         }
     }
 
-    fun approvePlan(sessionId: String) {
+    fun approvePlan(sessionId: String, plan: dev.therealashik.jules.sdk.models.Plan? = null) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             try {
-                apiClient.approvePlan(sessionId.normalizeSessionId())
+                apiClient.approvePlan(sessionId.normalizeSessionId(), plan)
                 // Activities will be updated via WebSocket
                 _state.update { it.copy(isLoading = false) }
             } catch (e: CancellationException) {
