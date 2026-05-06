@@ -5,14 +5,19 @@ import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.plugins.websocket.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import io.ktor.serialization.kotlinx.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.Json
 
 class JulesApiClient(
     private val apiKey: String,
+    private val proxyUrl: String? = null,
     httpClient: HttpClient? = null
 ) {
     private val cache = InMemoryCache<String, Any>()
@@ -20,6 +25,14 @@ class JulesApiClient(
     private val client = (httpClient ?: HttpClient()).config {
         install(ContentNegotiation) {
             json(Json {
+                ignoreUnknownKeys = true
+                isLenient = true
+                encodeDefaults = true
+                explicitNulls = false
+            })
+        }
+        install(WebSockets) {
+            contentConverter = KotlinxWebsocketSerializationConverter(Json {
                 ignoreUnknownKeys = true
                 isLenient = true
                 encodeDefaults = true
@@ -161,6 +174,25 @@ class JulesApiClient(
         }
         return response.bodyOrThrow<Source>().also {
             cache.set(cacheKey, it)
+        }
+    }
+
+    fun watchActivities(sessionId: String): Flow<Activity> = flow {
+        val wsBaseUrl = (proxyUrl ?: baseUrl)
+            .replace("https://", "wss://")
+            .replace("http://", "ws://")
+
+        client.webSocket("$wsBaseUrl/sessions/$sessionId/activities/watch", {
+            header("x-goog-api-key", apiKey)
+        }) {
+            while (true) {
+                try {
+                    val activity = receiveDeserialized<Activity>()
+                    emit(activity)
+                } catch (e: Exception) {
+                    break
+                }
+            }
         }
     }
 

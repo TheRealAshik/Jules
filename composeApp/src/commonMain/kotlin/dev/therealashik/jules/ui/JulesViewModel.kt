@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import dev.therealashik.jules.KeyValueStore
 import dev.therealashik.jules.sdk.JulesApiClient
 import dev.therealashik.jules.sdk.models.*
+import dev.therealashik.jules.PROXY_URL
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -65,10 +67,12 @@ class JulesViewModel(
     )
     val state: StateFlow<UiState> = _state.asStateFlow()
 
+    private var activityWatchJob: Job? = null
+
     fun saveApiKey(key: String) {
         store?.putString("api_key", key)
         apiClient.close()
-        apiClient = JulesApiClient(key)
+        apiClient = JulesApiClient(key, PROXY_URL)
         _state.update { it.copy(apiKey = key) }
         navigate(Screen.SessionList)
     }
@@ -88,15 +92,41 @@ class JulesViewModel(
             _state.update { it.copy(selectedGalleryPrompts = emptyList()) }
         }
         _state.update { it.copy(screen = screen, error = null) }
+
+        activityWatchJob?.cancel()
+        activityWatchJob = null
+
         when (screen) {
             is Screen.SessionList -> loadSessions()
-            is Screen.SessionDetail -> loadActivities(screen.sessionId)
+            is Screen.SessionDetail -> {
+                loadActivities(screen.sessionId)
+                startWatchingActivities(screen.sessionId)
+            }
             is Screen.PromptGallery -> loadPrompts()
             Screen.CreateSession -> {
                 loadPrompts()
                 loadSources()
             }
             Screen.Settings -> Unit
+        }
+    }
+
+    private fun startWatchingActivities(sessionId: String) {
+        activityWatchJob = viewModelScope.launch {
+            try {
+                apiClient.watchActivities(sessionId.normalizeSessionId()).collect { activity ->
+                    _state.update { state ->
+                        val currentIds = state.activities.map { it.id }.toSet()
+                        if (activity.id !in currentIds) {
+                            state.copy(activities = state.activities + activity)
+                        } else {
+                            state
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // Silently handle WS errors, might want to retry or show a toast
+            }
         }
     }
 
@@ -218,7 +248,8 @@ class JulesViewModel(
             _state.update { it.copy(isLoading = true, error = null) }
             try {
                 apiClient.sendMessage(sessionId.normalizeSessionId(), SendMessageRequest(prompt = prompt))
-                loadActivities(sessionId)
+                // Activities will be updated via WebSocket
+                _state.update { it.copy(isLoading = false) }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -232,12 +263,19 @@ class JulesViewModel(
             _state.update { it.copy(isLoading = true, error = null) }
             try {
                 apiClient.approvePlan(sessionId.normalizeSessionId())
-                loadActivities(sessionId)
+                // Activities will be updated via WebSocket
+                _state.update { it.copy(isLoading = false) }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 _state.update { it.copy(isLoading = false, error = e.message ?: "Failed to approve plan") }
             }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        activityWatchJob?.cancel()
+        apiClient.close()
     }
 }
