@@ -98,7 +98,7 @@ fun App() {
 
     val promptGalleryRepository = remember { PromptGalleryRepository(store) }
     val savedKey = remember { store.getString("api_key") }
-    val apiClient = remember { JulesApiClient(savedKey) }
+    val apiClient = remember { JulesApiClient(savedKey, PROXY_URL) }
     val viewModel = viewModel { JulesViewModel(apiClient, savedKey, store, promptGalleryRepository) }
     val state by viewModel.state.collectAsState()
 
