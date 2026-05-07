@@ -6,6 +6,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,6 +35,19 @@ import dev.therealashik.jules.sdk.models.GitPatch
 import dev.therealashik.jules.sdk.models.BashOutput
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.platform.LocalUriHandler
+import kotlinx.coroutines.delay
+
+@Composable
+fun TypewriterText(fullText: String, speedMs: Long = 14L, content: @Composable (String) -> Unit) {
+    var displayed by remember(fullText) { mutableStateOf("") }
+    LaunchedEffect(fullText) {
+        fullText.forEachIndexed { i, _ ->
+            delay(speedMs)
+            displayed = fullText.take(i + 1)
+        }
+    }
+    content(displayed)
+}
 
 private val ATTACHMENT_ITEMS = listOf(
     Triple(Icons.Default.Image, Strings.IMAGES, Strings.CREATE_AND_EDIT),
@@ -115,8 +129,8 @@ fun SessionDetailScreen(viewModel: JulesViewModel, state: UiState, screen: Scree
                         items(pullRequests, key = { "pr_${it.url}" }) { pr ->
                             PullRequestCard(pr)
                         }
-                        items(reversedActivities, key = { it.id.ifEmpty { it.name } }) { activity ->
-                            ChatBubble(activity = activity, session = state.sessionsById[screen.sessionId], viewModel = viewModel)
+                        itemsIndexed(reversedActivities, key = { _, it -> it.id.ifEmpty { it.name } }) { index, activity ->
+                            ChatBubble(activity = activity, session = state.sessionsById[screen.sessionId], viewModel = viewModel, index = index)
                         }
                         if (screen.prompt.isNotBlank()) {
                             item(key = "initial_prompt") {
@@ -326,10 +340,15 @@ fun EmptyState(title: String) {
 }
 
 @Composable
-fun ChatBubble(activity: Activity, session: dev.therealashik.jules.sdk.models.Session?, viewModel: JulesViewModel) {
+fun ChatBubble(activity: Activity, session: dev.therealashik.jules.sdk.models.Session?, viewModel: JulesViewModel, index: Int = 0) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(kotlin.math.min(index * 50L, 400L))
+        visible = true
+    }
     AnimatedVisibility(
-        visible = true,
-        enter = slideInVertically { it / 3 } + fadeIn(tween(250))
+        visible = visible,
+        enter = slideInVertically { it / 3 } + fadeIn(tween(300))
     ) {
         val agentMessaged = activity.agentMessaged
         val userMessaged = activity.userMessaged
@@ -375,18 +394,20 @@ fun ChatBubble(activity: Activity, session: dev.therealashik.jules.sdk.models.Se
                         shape = RoundedCornerShape(Dimens.bubbleCornerRadius, Dimens.bubbleCornerRadius, Dimens.bubbleCornerRadius, Dimens.spacingXs),
                         modifier = Modifier.padding(end = Dimens.spacingXxl)
                     ) {
-                        Markdown(
-                            content = agentMessaged.agentMessage,
-                            modifier = Modifier.padding(Dimens.spacingM),
-                            colors = markdownColor(
-                                text = MaterialTheme.colorScheme.onSurfaceVariant,
-                                codeBackground = MaterialTheme.colorScheme.surface,
-                            ),
-                            typography = markdownTypography(
-                                text = MaterialTheme.typography.bodyMedium,
-                                code = MaterialTheme.typography.bodySmall,
+                        TypewriterText(fullText = agentMessaged.agentMessage) { displayedText ->
+                            Markdown(
+                                content = displayedText,
+                                modifier = Modifier.padding(Dimens.spacingM),
+                                colors = markdownColor(
+                                    text = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    codeBackground = MaterialTheme.colorScheme.surface,
+                                ),
+                                typography = markdownTypography(
+                                    text = MaterialTheme.typography.bodyMedium,
+                                    code = MaterialTheme.typography.bodySmall,
+                                )
                             )
-                        )
+                        }
                     }
                 }
             } else if (planGenerated != null) {
