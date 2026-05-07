@@ -23,6 +23,7 @@ sealed interface Screen {
     data object SessionList : Screen
     data object CreateSession : Screen
     data class SessionDetail(val sessionId: String, val title: String, val prompt: String = "") : Screen
+    data class CodeReview(val sessionId: String, val title: String) : Screen
     data object Settings : Screen
     data object PromptGallery : Screen
 }
@@ -116,6 +117,7 @@ class JulesViewModel(
                 startWatchingActivities(screen.sessionId)
                 startPolling(screen.sessionId)
             }
+            is Screen.CodeReview -> Unit
             is Screen.PromptGallery -> loadPrompts()
             Screen.CreateSession -> {
                 loadPrompts()
