@@ -109,6 +109,18 @@ fun SettingsScreen(viewModel: JulesViewModel, state: UiState) {
                 }
             }
 
+            ListItem(
+                headlineContent = { Text(Strings.COMPACT_SESSION_LIST) },
+                trailingContent = {
+                    Switch(
+                        checked = state.sessionListCompact,
+                        onCheckedChange = { viewModel.saveSessionListCompact(it) }
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+            )
+
             // Page size slider
             Text(
                 "${Strings.PAGE_SIZE}${state.pageSize}",

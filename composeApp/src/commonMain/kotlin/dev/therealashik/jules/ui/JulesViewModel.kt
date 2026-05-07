@@ -39,7 +39,8 @@ data class UiState(
     val screen: Screen = Screen.SessionList,
     val apiKey: String = "",
     val themePreference: ThemePreference = ThemePreference.SYSTEM,
-    val pageSize: Int = 30
+    val pageSize: Int = 30,
+    val sessionListCompact: Boolean = false
 )
 
 private fun String.normalizeSessionId() = substringAfter("sessions/").takeIf { it.isNotBlank() } ?: this
@@ -56,13 +57,15 @@ class JulesViewModel(
         ?: ThemePreference.SYSTEM
     private val initialPageSize = store?.getString("page_size")
         ?.toIntOrNull()?.coerceIn(10, 100) ?: 30
+    private val initialSessionListCompact = store?.getString("session_list_compact")?.toBooleanStrictOrNull() ?: false
 
     private val _state = MutableStateFlow(
         UiState(
             apiKey = initialApiKey,
             screen = if (initialApiKey.isBlank()) Screen.Settings else Screen.SessionList,
             themePreference = initialTheme,
-            pageSize = initialPageSize
+            pageSize = initialPageSize,
+            sessionListCompact = initialSessionListCompact
         )
     )
     val state: StateFlow<UiState> = _state.asStateFlow()
@@ -85,6 +88,11 @@ class JulesViewModel(
     fun savePageSize(size: Int) {
         store?.putString("page_size", size.toString())
         _state.update { it.copy(pageSize = size) }
+    }
+
+    fun saveSessionListCompact(compact: Boolean) {
+        store?.putString("session_list_compact", compact.toString())
+        _state.update { it.copy(sessionListCompact = compact) }
     }
 
     fun navigate(screen: Screen) {

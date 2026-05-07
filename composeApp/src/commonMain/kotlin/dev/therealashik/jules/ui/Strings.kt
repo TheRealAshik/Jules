@@ -76,4 +76,5 @@ object Strings {
     const val PULL_TO_REFRESH = "Pull-to-refresh using PullToRefreshBox (M3)"
     const val INPUT_BUTTON = "InputButton"
     const val ADD_PROMPT_LOWER = "Add prompt"
+    const val COMPACT_SESSION_LIST = "Compact session list"
 }
