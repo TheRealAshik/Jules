@@ -8,10 +8,12 @@ import dev.therealashik.jules.sdk.models.*
 import dev.therealashik.jules.PROXY_URL
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 import dev.therealashik.jules.gallery.PromptGalleryRepository
@@ -77,6 +79,7 @@ class JulesViewModel(
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     private var activityWatchJob: Job? = null
+    private var pollingJob: Job? = null
 
     fun saveApiKey(key: String) {
         store?.putString("api_key", key)
@@ -104,12 +107,14 @@ class JulesViewModel(
 
         activityWatchJob?.cancel()
         activityWatchJob = null
+        stopPolling()
 
         when (screen) {
             is Screen.SessionList -> loadSessions()
             is Screen.SessionDetail -> {
                 loadActivities(screen.sessionId)
                 startWatchingActivities(screen.sessionId)
+                startPolling(screen.sessionId)
             }
             is Screen.PromptGallery -> loadPrompts()
             Screen.CreateSession -> {
@@ -137,6 +142,40 @@ class JulesViewModel(
                 // Silently handle WS errors, might want to retry or show a toast
             }
         }
+    }
+
+    private fun startPolling(sessionId: String) {
+        stopPolling()
+        pollingJob = viewModelScope.launch {
+            while (isActive) {
+                delay(5000)
+                try {
+                    val session = apiClient.getSession(sessionId.normalizeSessionId(), forceRefresh = true)
+                    _state.update { state ->
+                        state.copy(
+                            sessionsById = state.sessionsById + (sessionId to session)
+                        )
+                    }
+                    loadActivities(sessionId, forceRefresh = true, showLoading = false)
+
+                    if (session.state == SessionState.COMPLETED ||
+                        session.state == SessionState.FAILED ||
+                        session.state == SessionState.STATE_UNSPECIFIED
+                    ) {
+                        break
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // Ignore errors during polling
+                }
+            }
+        }
+    }
+
+    private fun stopPolling() {
+        pollingJob?.cancel()
+        pollingJob = null
     }
 
     fun toggleStateFilter(state: SessionState) {
@@ -253,16 +292,16 @@ class JulesViewModel(
         }
     }
 
-    fun loadActivities(sessionId: String) {
+    fun loadActivities(sessionId: String, forceRefresh: Boolean = false, showLoading: Boolean = true) {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
+            if (showLoading) _state.update { it.copy(isLoading = true, error = null) }
             try {
-                val response = apiClient.listActivities(sessionId.normalizeSessionId(), pageSize = _state.value.pageSize)
-                _state.update { it.copy(isLoading = false, activities = response.activities) }
+                val response = apiClient.listActivities(sessionId.normalizeSessionId(), pageSize = _state.value.pageSize, forceRefresh = forceRefresh)
+                _state.update { it.copy(isLoading = if (showLoading) false else it.isLoading, activities = response.activities) }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _state.update { it.copy(isLoading = false, error = e.message ?: "Failed to load activities") }
+                if (showLoading) _state.update { it.copy(isLoading = false, error = e.message ?: "Failed to load activities") }
             }
         }
     }
