@@ -119,6 +119,18 @@ fun SessionDetailScreen(viewModel: JulesViewModel, state: UiState, screen: Scree
                             ?.outputs?.mapNotNull { it.pullRequest }?.filter { it.url.isNotBlank() }
                             ?: emptyList()
                     }
+                    val stablePrompt = screen.prompt
+                    val promptColors = markdownColor(
+                        text = MaterialTheme.colorScheme.onPrimaryContainer,
+                        codeBackground = MaterialTheme.colorScheme.primaryContainer,
+                    )
+                    val promptTypography = markdownTypography(
+                        text = MaterialTheme.typography.bodyMedium,
+                        code = MaterialTheme.typography.bodySmall,
+                    )
+                    val stablePromptColors = remember(MaterialTheme.colorScheme.onPrimaryContainer, MaterialTheme.colorScheme.primaryContainer) { promptColors }
+                    val stablePromptTypography = remember(MaterialTheme.typography.bodyMedium, MaterialTheme.typography.bodySmall) { promptTypography }
+
                     LazyColumn(
                         state = listState,
                         reverseLayout = true,
@@ -132,7 +144,7 @@ fun SessionDetailScreen(viewModel: JulesViewModel, state: UiState, screen: Scree
                         itemsIndexed(reversedActivities, key = { _, it -> it.id.ifEmpty { it.name } }) { index, activity ->
                             ChatBubble(activity = activity, session = state.sessionsById[screen.sessionId], viewModel = viewModel, index = index)
                         }
-                        if (screen.prompt.isNotBlank()) {
+                        if (stablePrompt.isNotBlank()) {
                             item(key = "initial_prompt") {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -144,16 +156,10 @@ fun SessionDetailScreen(viewModel: JulesViewModel, state: UiState, screen: Scree
                                         modifier = Modifier.padding(start = Dimens.spacingXxl)
                                     ) {
                                         Markdown(
-                                            content = screen.prompt,
+                                            content = stablePrompt,
                                             modifier = Modifier.padding(Dimens.spacingM),
-                                            colors = markdownColor(
-                                                text = MaterialTheme.colorScheme.onPrimaryContainer,
-                                                codeBackground = MaterialTheme.colorScheme.primaryContainer,
-                                            ),
-                                            typography = markdownTypography(
-                                                text = MaterialTheme.typography.bodyMedium,
-                                                code = MaterialTheme.typography.bodySmall,
-                                            )
+                                            colors = stablePromptColors,
+                                            typography = stablePromptTypography
                                         )
                                     }
                                 }
