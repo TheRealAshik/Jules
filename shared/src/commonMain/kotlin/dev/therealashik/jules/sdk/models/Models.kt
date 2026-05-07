@@ -185,7 +185,7 @@ data class SendMessageRequest(
 class SendMessageResponse
 
 @Serializable
-class ApprovePlanRequest
+data class ApprovePlanRequest(val plan: Plan? = null)
 
 @Serializable
 class ApprovePlanResponse

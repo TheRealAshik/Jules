@@ -76,4 +76,11 @@ object Strings {
     const val PULL_TO_REFRESH = "Pull-to-refresh using PullToRefreshBox (M3)"
     const val INPUT_BUTTON = "InputButton"
     const val ADD_PROMPT_LOWER = "Add prompt"
+    const val APPROVE_PLAN = "Approve Plan"
+    const val EDIT_PLAN = "Edit Plan"
+    const val ADD_STEP = "Add step"
+    const val REMOVE_STEP = "Remove step"
+    const val APPROVE = "Approve"
+    const val UP = "Up"
+    const val DOWN = "Down"
 }

@@ -110,9 +110,9 @@ class JulesApiClient(
         }
     }
 
-    suspend fun approvePlan(sessionId: String): ApprovePlanResponse {
+    suspend fun approvePlan(sessionId: String, plan: Plan? = null): ApprovePlanResponse {
         val response = client.post("$baseUrl/sessions/$sessionId:approvePlan") {
-            setBody(ApprovePlanRequest())
+            setBody(ApprovePlanRequest(plan = plan))
         }
         return response.bodyOrThrow<ApprovePlanResponse>().also {
             cache.removeMatching { key -> key.contains(sessionId) || key.startsWith("listSessions-") }
