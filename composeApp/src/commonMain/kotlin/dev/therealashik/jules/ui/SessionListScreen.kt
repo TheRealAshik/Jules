@@ -292,7 +292,7 @@ fun SessionCard(session: Session, isCompact: Boolean = false, onClick: () -> Uni
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f).padding(end = Dimens.spacingM)
                 )
-                StateBadge(state = session.state)
+                AnimatedStatusBadge(state = session.state)
             }
         } else {
             Column(
@@ -321,7 +321,7 @@ fun SessionCard(session: Session, isCompact: Boolean = false, onClick: () -> Uni
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    StateBadge(state = session.state)
+                    AnimatedStatusBadge(state = session.state)
                     Text(
                         text = session.createTime,
                         style = MaterialTheme.typography.labelSmall,
