@@ -96,7 +96,7 @@ fun SessionDetailScreen(viewModel: JulesViewModel, state: UiState, screen: Scree
                         }
                     },
                     actions = {
-                        IconButton(onClick = { }) {
+                        IconButton(onClick = { viewModel.navigate(Screen.CodeReview(screen.sessionId, screen.title)) }) {
                             Icon(Icons.Default.MoreVert, contentDescription = Strings.MORE)
                         }
                     }

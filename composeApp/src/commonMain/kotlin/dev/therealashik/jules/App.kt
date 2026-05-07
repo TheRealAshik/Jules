@@ -22,6 +22,7 @@ import dev.therealashik.jules.ui.SessionDetailScreen
 import dev.therealashik.jules.ui.SessionListScreen
 import dev.therealashik.jules.ui.SettingsScreen
 import dev.therealashik.jules.ui.PromptGalleryScreen
+import dev.therealashik.jules.ui.CodeReviewScreen
 import dev.therealashik.jules.gallery.PromptGalleryRepository
 import dev.therealashik.jules.ui.ThemePreference
 import dev.therealashik.jules.ui.CrashDialog
@@ -116,6 +117,7 @@ fun App() {
                 is Screen.SessionList -> SessionListScreen(viewModel, state)
                 is Screen.CreateSession -> CreateSessionScreen(viewModel, state)
                 is Screen.SessionDetail -> SessionDetailScreen(viewModel, state, screen)
+                is Screen.CodeReview -> CodeReviewScreen(viewModel, state, screen)
                 is Screen.Settings -> SettingsScreen(viewModel, state)
                 is Screen.PromptGallery -> PromptGalleryScreen(viewModel, state)
             }
