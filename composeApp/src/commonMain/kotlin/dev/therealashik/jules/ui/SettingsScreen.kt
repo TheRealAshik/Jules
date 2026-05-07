@@ -125,6 +125,19 @@ fun SettingsScreen(viewModel: JulesViewModel, state: UiState) {
                         }
                     }
 
+                    // Compact session list toggle
+                    ListItem(
+                        headlineContent = { Text(Strings.COMPACT_SESSION_LIST) },
+                        trailingContent = {
+                            Switch(
+                                checked = state.sessionListCompact,
+                                onCheckedChange = { viewModel.saveSessionListCompact(it) }
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                    )
+
                     // Page size slider
                     Column {
                         Row(

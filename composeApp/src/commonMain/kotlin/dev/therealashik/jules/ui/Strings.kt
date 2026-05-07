@@ -89,4 +89,5 @@ object Strings {
     const val APPROVE = "Approve"
     const val UP = "Up"
     const val DOWN = "Down"
+    const val COMPACT_SESSION_LIST = "Compact session list"
 }

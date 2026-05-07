@@ -175,6 +175,7 @@ fun SessionListScreen(viewModel: JulesViewModel, state: UiState) {
                             items(state.filteredSessions, key = { it.id.ifEmpty { it.name } }) { session ->
                                 SessionCard(
                                     session = session,
+                                    isCompact = state.sessionListCompact,
                                     onClick = {
                                         val sessionId = session.name.substringAfter("sessions/").takeIf { it.isNotBlank() } ?: session.id
                                         viewModel.navigate(Screen.SessionDetail(sessionId, session.title, session.prompt))
@@ -265,7 +266,7 @@ fun PullToRefreshBox(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun SessionCard(session: Session, onClick: () -> Unit, onLongClick: () -> Unit) {
+fun SessionCard(session: Session, isCompact: Boolean = false, onClick: () -> Unit, onLongClick: () -> Unit) {
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -274,38 +275,59 @@ fun SessionCard(session: Session, onClick: () -> Unit, onLongClick: () -> Unit) 
                 onLongClick = onLongClick
             ),
     ) {
-        Column(
-            modifier = Modifier
-                .padding(Dimens.spacingL)
-                .fillMaxWidth()
-        ) {
-            Text(
-                text = session.title.ifBlank { Strings.UNTITLED_SESSION },
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(Dimens.spacingXs))
-            Text(
-                text = session.prompt,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(Dimens.spacingM))
+        if (isCompact) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Dimens.spacingL, vertical = Dimens.spacingM),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 AnimatedStatusBadge(state = session.state)
                 Text(
-                    text = session.createTime,
-                    style = MaterialTheme.typography.labelSmall,
+                    text = session.title.ifBlank { Strings.UNTITLED_SESSION },
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f).padding(end = Dimens.spacingM)
+                )
+                StateBadge(state = session.state)
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .padding(Dimens.spacingL)
+                    .fillMaxWidth()
+            ) {
+                Text(
+                    text = session.title.ifBlank { Strings.UNTITLED_SESSION },
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(Dimens.spacingXs))
+                Text(
+                    text = session.prompt,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Spacer(modifier = Modifier.height(Dimens.spacingM))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    StateBadge(state = session.state)
+                    Text(
+                        text = session.createTime,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
