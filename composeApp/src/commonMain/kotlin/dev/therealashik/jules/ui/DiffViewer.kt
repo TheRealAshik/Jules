@@ -1,7 +1,6 @@
 package dev.therealashik.jules.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,6 +10,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
@@ -19,21 +19,23 @@ import androidx.compose.ui.text.font.FontWeight
 
 @Composable
 fun UnifiedDiffViewer(patch: String, modifier: Modifier = Modifier) {
-    val isDark = isSystemInDarkTheme()
+    val colorScheme = MaterialTheme.colorScheme
 
-    val addBg = if (isDark) Color(0xFF1A3A1A) else Color(0xFFE6FFE6)
-    val addText = if (isDark) Color(0xFF4CAF50) else Color(0xFF4CAF50)
+    val addBg = colorScheme.tertiaryContainer
+    val addText = colorScheme.onTertiaryContainer
 
-    val removeBg = if (isDark) Color(0xFF3A1A1A) else Color(0xFFFFE6E6)
-    val removeText = if (isDark) Color(0xFFEF5350) else Color(0xFFEF5350)
+    val removeBg = colorScheme.errorContainer
+    val removeText = colorScheme.onErrorContainer
+
+    val lines = remember(patch) { patch.lines() }
 
     Surface(
         modifier = modifier.heightIn(max = Dimens.gitPatchMaxHeight),
         shape = RoundedCornerShape(Dimens.spacingS),
-        color = MaterialTheme.colorScheme.surface
+        color = colorScheme.surface
     ) {
         LazyColumn {
-            items(patch.lines()) { line ->
+            items(lines) { line ->
                 val isAddition = line.startsWith("+") && !line.startsWith("+++")
                 val isDeletion = line.startsWith("-") && !line.startsWith("---")
                 val isHunkHeader = line.startsWith("@@")
@@ -43,16 +45,16 @@ fun UnifiedDiffViewer(patch: String, modifier: Modifier = Modifier) {
                 val bgColor = when {
                     isAddition -> addBg
                     isDeletion -> removeBg
-                    isHunkHeader -> MaterialTheme.colorScheme.surfaceVariant
+                    isHunkHeader -> colorScheme.surfaceVariant
                     else -> Color.Transparent
                 }
 
                 val textColor = when {
                     isAddition -> addText
                     isDeletion -> removeText
-                    isHunkHeader -> MaterialTheme.colorScheme.onSurfaceVariant
-                    isFileHeader -> MaterialTheme.colorScheme.primary
-                    else -> MaterialTheme.colorScheme.onSurface
+                    isHunkHeader -> colorScheme.onSurfaceVariant
+                    isFileHeader -> colorScheme.primary
+                    else -> colorScheme.onSurface
                 }
 
                 val fontWeight = if (isFileHeader) FontWeight.Bold else null

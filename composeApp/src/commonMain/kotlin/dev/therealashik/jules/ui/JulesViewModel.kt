@@ -156,7 +156,7 @@ class JulesViewModel(
                             sessionsById = state.sessionsById + (sessionId to session)
                         )
                     }
-                    loadActivities(sessionId, forceRefresh = true)
+                    loadActivities(sessionId, forceRefresh = true, showLoading = false)
 
                     if (session.state == SessionState.COMPLETED ||
                         session.state == SessionState.FAILED ||
@@ -292,16 +292,16 @@ class JulesViewModel(
         }
     }
 
-    fun loadActivities(sessionId: String, forceRefresh: Boolean = false) {
+    fun loadActivities(sessionId: String, forceRefresh: Boolean = false, showLoading: Boolean = true) {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
+            if (showLoading) _state.update { it.copy(isLoading = true, error = null) }
             try {
                 val response = apiClient.listActivities(sessionId.normalizeSessionId(), pageSize = _state.value.pageSize, forceRefresh = forceRefresh)
-                _state.update { it.copy(isLoading = false, activities = response.activities) }
+                _state.update { it.copy(isLoading = if (showLoading) false else it.isLoading, activities = response.activities) }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _state.update { it.copy(isLoading = false, error = e.message ?: "Failed to load activities") }
+                if (showLoading) _state.update { it.copy(isLoading = false, error = e.message ?: "Failed to load activities") }
             }
         }
     }
