@@ -24,6 +24,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.therealashik.jules.sdk.models.Session
 import dev.therealashik.jules.sdk.models.SessionState
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.drawscope.Stroke
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -291,7 +300,7 @@ fun SessionCard(session: Session, onClick: () -> Unit, onLongClick: () -> Unit) 
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                StateBadge(state = session.state)
+                AnimatedStatusBadge(state = session.state)
                 Text(
                     text = session.createTime,
                     style = MaterialTheme.typography.labelSmall,
@@ -303,7 +312,7 @@ fun SessionCard(session: Session, onClick: () -> Unit, onLongClick: () -> Unit) 
 }
 
 @Composable
-fun StateBadge(state: SessionState) {
+fun AnimatedStatusBadge(state: SessionState) {
     val (containerColor, contentColor) = when (state) {
         SessionState.COMPLETED -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
         SessionState.FAILED -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
@@ -312,8 +321,62 @@ fun StateBadge(state: SessionState) {
         else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
     }
 
+    val infiniteTransition = rememberInfiniteTransition()
+
     AssistChip(
         onClick = {},
+        leadingIcon = {
+            when (state) {
+                SessionState.IN_PROGRESS, SessionState.PLANNING -> {
+                    val angle by infiniteTransition.animateFloat(
+                        initialValue = 0f,
+                        targetValue = 360f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(1200, easing = LinearEasing)
+                        )
+                    )
+                    Canvas(modifier = Modifier.size(16.dp)) {
+                        drawCircle(color = contentColor, radius = size.minDimension / 6)
+                        drawArc(
+                            color = contentColor,
+                            startAngle = angle,
+                            sweepAngle = 270f,
+                            useCenter = false,
+                            style = Stroke(width = 2.dp.toPx())
+                        )
+                    }
+                }
+                SessionState.AWAITING_PLAN_APPROVAL, SessionState.AWAITING_USER_FEEDBACK -> {
+                    val scale by infiniteTransition.animateFloat(
+                        initialValue = 0.85f,
+                        targetValue = 1.15f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(1000),
+                            repeatMode = RepeatMode.Reverse
+                        )
+                    )
+                    Canvas(modifier = Modifier.size(16.dp).scale(scale)) {
+                        drawCircle(color = contentColor)
+                    }
+                }
+                SessionState.COMPLETED -> {
+                    Canvas(modifier = Modifier.size(16.dp)) {
+                        drawCircle(
+                            color = contentColor,
+                            style = Stroke(width = 2.dp.toPx())
+                        )
+                    }
+                }
+                SessionState.FAILED -> {
+                    Canvas(modifier = Modifier.size(16.dp)) {
+                        drawCircle(color = contentColor)
+                    }
+                }
+                else -> {
+                    // No indicator for unknown states to keep it clean
+                }
+            }
+        },
         label = { Text(state.name.replace("_", " ")) },
         colors = AssistChipDefaults.assistChipColors(
             containerColor = containerColor,
