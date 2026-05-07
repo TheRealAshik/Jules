@@ -579,46 +579,13 @@ fun GitPatchCard(gitPatch: GitPatch) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = Dimens.gitPatchMaxHeight)
-                            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(Dimens.spacingS))
                             .border(Dimens.borderWidth, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(Dimens.spacingS))
-                            .verticalScroll(rememberScrollState())
-                            .padding(Dimens.spacingS)
+                            .padding(Dimens.borderWidth)
                     ) {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            gitPatch.unidiffPatch.lines().forEach { line ->
-                                val isAddition = line.startsWith("+") && !line.startsWith("+++")
-                                val isDeletion = line.startsWith("-") && !line.startsWith("---")
-                                val isHeader = line.startsWith("diff ") || line.startsWith("index ") ||
-                                        line.startsWith("+++") || line.startsWith("---") || line.startsWith("@@")
-
-                                val bgColor = when {
-                                    isAddition -> Color(0xFF1A3A1A)
-                                    isDeletion -> Color(0xFF3A1A1A)
-                                    else -> Color.Transparent
-                                }
-
-                                val textColor = when {
-                                    isAddition -> Color(0xFF4CAF50)
-                                    isDeletion -> Color(0xFFEF5350)
-                                    isHeader -> MaterialTheme.colorScheme.primary
-                                    else -> MaterialTheme.colorScheme.onSurface
-                                }
-
-                                val fontWeight = if (isHeader) FontWeight.Bold else null
-
-                                Text(
-                                    text = line,
-                                    fontFamily = FontFamily.Monospace,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = textColor,
-                                    fontWeight = fontWeight,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(bgColor)
-                                )
-                            }
-                        }
+                        UnifiedDiffViewer(
+                            patch = gitPatch.unidiffPatch,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
             }

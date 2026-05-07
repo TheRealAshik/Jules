@@ -80,10 +80,12 @@ class JulesApiClient(
         }
     }
 
-    suspend fun getSession(sessionId: String): Session {
+    suspend fun getSession(sessionId: String, forceRefresh: Boolean = false): Session {
         val cacheKey = "getSession-$sessionId"
-        val cached = cache.get(cacheKey) as? Session
-        if (cached != null) return cached
+        if (!forceRefresh) {
+            val cached = cache.get(cacheKey) as? Session
+            if (cached != null) return cached
+        }
 
         val response = client.get("$baseUrl/sessions/$sessionId") {
         }
@@ -119,10 +121,12 @@ class JulesApiClient(
         }
     }
 
-    suspend fun listActivities(sessionId: String, pageSize: Int = 50, pageToken: String? = null, createTime: String? = null): ListActivitiesResponse {
+    suspend fun listActivities(sessionId: String, pageSize: Int = 50, pageToken: String? = null, createTime: String? = null, forceRefresh: Boolean = false): ListActivitiesResponse {
         val cacheKey = "listActivities-$sessionId-$pageSize-$pageToken-$createTime"
-        val cached = cache.get(cacheKey) as? ListActivitiesResponse
-        if (cached != null) return cached
+        if (!forceRefresh) {
+            val cached = cache.get(cacheKey) as? ListActivitiesResponse
+            if (cached != null) return cached
+        }
 
         val response = client.get("$baseUrl/sessions/$sessionId/activities") {
             parameter("pageSize", pageSize)
