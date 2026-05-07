@@ -41,8 +41,17 @@ data class UiState(
     val screen: Screen = Screen.SessionList,
     val apiKey: String = "",
     val themePreference: ThemePreference = ThemePreference.SYSTEM,
-    val pageSize: Int = 30
-)
+    val pageSize: Int = 30,
+    val filterStates: Set<SessionState> = emptySet(),
+    val filterRepo: String? = null
+) {
+    val filteredSessions: List<Session>
+        get() = sessions.filter { session ->
+            val matchState = filterStates.isEmpty() || filterStates.contains(session.state)
+            val matchRepo = filterRepo == null || session.sourceContext?.source == filterRepo
+            matchState && matchRepo
+        }
+}
 
 private fun String.normalizeSessionId() = substringAfter("sessions/").takeIf { it.isNotBlank() } ?: this
 
@@ -167,6 +176,21 @@ class JulesViewModel(
     private fun stopPolling() {
         pollingJob?.cancel()
         pollingJob = null
+    }
+
+    fun toggleStateFilter(state: SessionState) {
+        _state.update { current ->
+            val newStates = if (current.filterStates.contains(state)) {
+                current.filterStates - state
+            } else {
+                current.filterStates + state
+            }
+            current.copy(filterStates = newStates)
+        }
+    }
+
+    fun setRepoFilter(repo: String?) {
+        _state.update { it.copy(filterRepo = repo) }
     }
 
     fun loadSources() {
@@ -297,11 +321,11 @@ class JulesViewModel(
         }
     }
 
-    fun approvePlan(sessionId: String) {
+    fun approvePlan(sessionId: String, plan: dev.therealashik.jules.sdk.models.Plan? = null) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             try {
-                apiClient.approvePlan(sessionId.normalizeSessionId())
+                apiClient.approvePlan(sessionId.normalizeSessionId(), plan)
                 // Activities will be updated via WebSocket
                 _state.update { it.copy(isLoading = false) }
             } catch (e: CancellationException) {

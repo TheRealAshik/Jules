@@ -116,7 +116,7 @@ fun SessionDetailScreen(viewModel: JulesViewModel, state: UiState, screen: Scree
                             PullRequestCard(pr)
                         }
                         items(reversedActivities, key = { it.id.ifEmpty { it.name } }) { activity ->
-                            ChatBubble(activity = activity)
+                            ChatBubble(activity = activity, session = state.sessionsById[screen.sessionId], viewModel = viewModel)
                         }
                         if (screen.prompt.isNotBlank()) {
                             item(key = "initial_prompt") {
@@ -326,7 +326,7 @@ fun EmptyState(title: String) {
 }
 
 @Composable
-fun ChatBubble(activity: Activity) {
+fun ChatBubble(activity: Activity, session: dev.therealashik.jules.sdk.models.Session?, viewModel: JulesViewModel) {
     AnimatedVisibility(
         visible = true,
         enter = slideInVertically { it / 3 } + fadeIn(tween(250))
@@ -334,6 +334,11 @@ fun ChatBubble(activity: Activity) {
         val agentMessaged = activity.agentMessaged
         val userMessaged = activity.userMessaged
         val planGenerated = activity.planGenerated?.plan
+
+        val isAwaitingApproval = session?.state == dev.therealashik.jules.sdk.models.SessionState.AWAITING_PLAN_APPROVAL
+        var editableSteps by remember(planGenerated) {
+            mutableStateOf(planGenerated?.steps ?: emptyList())
+        }
 
         Column(modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.spacingXs)) {
             if (userMessaged != null) {
@@ -413,7 +418,8 @@ fun ChatBubble(activity: Activity) {
                                 Column(modifier = Modifier.padding(start = Dimens.spacingL, end = Dimens.spacingL, bottom = Dimens.spacingM)) {
                                     HorizontalDivider()
                                     Spacer(Modifier.height(Dimens.spacingS))
-                                    planGenerated.steps.forEach { step ->
+                                    val displaySteps = if (isAwaitingApproval) editableSteps else planGenerated.steps
+                                    displaySteps.forEachIndexed { idx, step ->
                                         Row(
                                             modifier = Modifier.padding(vertical = Dimens.spacingXs),
                                             verticalAlignment = Alignment.Top
@@ -425,24 +431,125 @@ fun ChatBubble(activity: Activity) {
                                             ) {
                                                 Box(contentAlignment = Alignment.Center) {
                                                     Text(
-                                                        "${step.index + 1}",
+                                                        "${idx + 1}",
                                                         style = MaterialTheme.typography.labelSmall,
                                                         color = MaterialTheme.colorScheme.onPrimaryContainer
                                                     )
                                                 }
                                             }
                                             Spacer(Modifier.width(Dimens.spacingS))
-                                            Column {
-                                                Text(step.title, fontWeight = FontWeight.Medium, style = MaterialTheme.typography.bodyMedium)
-                                                if (step.description.isNotBlank()) {
-                                                    Text(
-                                                        step.description,
-                                                        style = MaterialTheme.typography.bodySmall,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                if (isAwaitingApproval) {
+                                                    androidx.compose.foundation.text.BasicTextField(
+                                                        value = step.title,
+                                                        onValueChange = { newTitle ->
+                                                            editableSteps = editableSteps.toMutableList().apply {
+                                                                set(idx, step.copy(title = newTitle))
+                                                            }
+                                                        },
+                                                        textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                                            fontWeight = FontWeight.Medium,
+                                                            color = MaterialTheme.colorScheme.onSurface
+                                                        ),
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary)
                                                     )
+                                                    Spacer(Modifier.height(Dimens.spacingXxs))
+                                                    androidx.compose.foundation.text.BasicTextField(
+                                                        value = step.description,
+                                                        onValueChange = { newDesc ->
+                                                            editableSteps = editableSteps.toMutableList().apply {
+                                                                set(idx, step.copy(description = newDesc))
+                                                            }
+                                                        },
+                                                        textStyle = MaterialTheme.typography.bodySmall.copy(
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        ),
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary)
+                                                    )
+                                                } else {
+                                                    Text(step.title, fontWeight = FontWeight.Medium, style = MaterialTheme.typography.bodyMedium)
+                                                    if (step.description.isNotBlank()) {
+                                                        Text(
+                                                            step.description,
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                            if (isAwaitingApproval) {
+                                                Column(modifier = Modifier.width(Dimens.spacingXl)) {
+                                                    IconButton(
+                                                        onClick = {
+                                                            if (idx > 0) {
+                                                                editableSteps = editableSteps.toMutableList().apply {
+                                                                    val temp = this[idx]
+                                                                    this[idx] = this[idx - 1]
+                                                                    this[idx - 1] = temp
+                                                                }
+                                                            }
+                                                        },
+                                                        modifier = Modifier.size(Dimens.iconSizeMedium)
+                                                    ) {
+                                                        Icon(Icons.Default.KeyboardArrowUp, contentDescription = Strings.UP, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                    }
+                                                    IconButton(
+                                                        onClick = {
+                                                            if (idx < editableSteps.size - 1) {
+                                                                editableSteps = editableSteps.toMutableList().apply {
+                                                                    val temp = this[idx]
+                                                                    this[idx] = this[idx + 1]
+                                                                    this[idx + 1] = temp
+                                                                }
+                                                            }
+                                                        },
+                                                        modifier = Modifier.size(Dimens.iconSizeMedium)
+                                                    ) {
+                                                        Icon(Icons.Default.KeyboardArrowDown, contentDescription = Strings.DOWN, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                    }
+                                                    IconButton(
+                                                        onClick = {
+                                                            editableSteps = editableSteps.toMutableList().apply {
+                                                                removeAt(idx)
+                                                            }
+                                                        },
+                                                        modifier = Modifier.size(Dimens.iconSizeMedium)
+                                                    ) {
+                                                        Icon(Icons.Default.Close, contentDescription = Strings.REMOVE_STEP, tint = MaterialTheme.colorScheme.error)
+                                                    }
                                                 }
                                             }
                                         }
+                                    }
+                                    if (isAwaitingApproval) {
+                                        TextButton(
+                                            onClick = {
+                                                editableSteps = editableSteps + dev.therealashik.jules.sdk.models.PlanStep(
+                                                    title = "New step",
+                                                    description = ""
+                                                )
+                                            },
+                                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                                        ) {
+                                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(Dimens.spacingL))
+                                            Spacer(Modifier.width(Dimens.spacingXs))
+                                            Text(Strings.ADD_STEP)
+                                        }
+                                    }
+                                }
+                            }
+                            if (isAwaitingApproval) {
+                                HorizontalDivider()
+                                Box(modifier = Modifier.fillMaxWidth().padding(Dimens.spacingM), contentAlignment = Alignment.Center) {
+                                    Button(onClick = {
+                                        viewModel.approvePlan(
+                                            sessionId = session?.id ?: "",
+                                            plan = planGenerated.copy(steps = editableSteps.mapIndexed { i, step -> step.copy(index = i) })
+                                        )
+                                    }) {
+                                        Text(Strings.APPROVE)
                                     }
                                 }
                             }
