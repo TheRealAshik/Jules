@@ -290,9 +290,8 @@ fun SessionCard(session: Session, isCompact: Boolean = false, onClick: () -> Uni
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f).padding(end = Dimens.spacingM)
+                    modifier = Modifier.weight(1f).padding(start = Dimens.spacingM, end = Dimens.spacingM)
                 )
-                AnimatedStatusBadge(state = session.state)
             }
         } else {
             Column(
