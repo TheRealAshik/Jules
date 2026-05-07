@@ -12,10 +12,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
+import dev.therealashik.jules.NotificationService
 import dev.therealashik.jules.gallery.PromptGalleryRepository
 import dev.therealashik.jules.gallery.PromptItem
 
@@ -84,6 +86,9 @@ class JulesViewModel(
 
     private var activityWatchJob: Job? = null
     private var pollingJob: Job? = null
+
+    private val notificationService = NotificationService()
+    private val sessionPollJobs = mutableMapOf<String, Job>()
 
     fun saveApiKey(key: String) {
         store?.putString("api_key", key)
@@ -293,7 +298,9 @@ class JulesViewModel(
                     )
                 )
                 _state.update { it.copy(isLoading = false) }
-                navigate(Screen.SessionDetail(session.name.normalizeSessionId(), session.title, finalPrompt))
+                val sessionId = session.name.normalizeSessionId()
+                navigate(Screen.SessionDetail(sessionId, session.title, finalPrompt))
+                pollSessionStatus(sessionId, session.title.takeIf { it.isNotBlank() } ?: sessionId)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -331,6 +338,40 @@ class JulesViewModel(
         }
     }
 
+    private fun pollSessionStatus(sessionId: String, sessionTitle: String) {
+        sessionPollJobs[sessionId]?.cancel()
+        sessionPollJobs[sessionId] = viewModelScope.launch {
+            var lastState: SessionState? = null
+            while (true) {
+                try {
+                    val session = apiClient.getSession(sessionId, forceRefresh = true)
+                    if (session.state != lastState) {
+                        lastState = session.state
+                        val statusText = when (session.state) {
+                            SessionState.QUEUED -> "⏳ Queued"
+                            SessionState.PLANNING -> "⚙️ Planning"
+                            SessionState.AWAITING_PLAN_APPROVAL -> "👀 Waiting for your approval"
+                            SessionState.AWAITING_USER_FEEDBACK -> "👀 Needs user feedback"
+                            SessionState.IN_PROGRESS -> "⚙️ Jules is working…"
+                            SessionState.PAUSED -> "⏸️ Paused"
+                            SessionState.COMPLETED -> "✅ Completed"
+                            SessionState.FAILED -> "❌ Failed"
+                            SessionState.STATE_UNSPECIFIED -> "Unknown"
+                        }
+                        notificationService.notify(sessionId, sessionTitle, statusText)
+                    }
+
+                    if (session.state == SessionState.COMPLETED || session.state == SessionState.FAILED) {
+                        break
+                    }
+                } catch (e: Exception) {
+                    // Ignore errors during polling, maybe the session was deleted or network is down
+                }
+                delay(5000)
+            }
+        }
+    }
+
     fun approvePlan(sessionId: String, plan: dev.therealashik.jules.sdk.models.Plan? = null) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
@@ -349,6 +390,8 @@ class JulesViewModel(
     override fun onCleared() {
         super.onCleared()
         activityWatchJob?.cancel()
+        sessionPollJobs.values.forEach { it.cancel() }
+        sessionPollJobs.clear()
         apiClient.close()
     }
 }
