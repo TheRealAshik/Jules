@@ -64,10 +64,10 @@ class JulesApiClient(
         return response.bodyOrThrow()
     }
 
-    suspend fun listSessions(pageSize: Int = 30, pageToken: String? = null): ListSessionsResponse {
+    suspend fun listSessions(pageSize: Int = 30, pageToken: String? = null, useCache: Boolean = true): ListSessionsResponse {
         val cacheKey = "listSessions-$pageSize-$pageToken"
         val cached = cache.get(cacheKey) as? ListSessionsResponse
-        if (cached != null) return cached
+        if (useCache && cached != null) return cached
 
         val response = client.get("$baseUrl/sessions") {
             parameter("pageSize", pageSize)
@@ -80,10 +80,10 @@ class JulesApiClient(
         }
     }
 
-    suspend fun getSession(sessionId: String): Session {
+    suspend fun getSession(sessionId: String, useCache: Boolean = true): Session {
         val cacheKey = "getSession-$sessionId"
         val cached = cache.get(cacheKey) as? Session
-        if (cached != null) return cached
+        if (useCache && cached != null) return cached
 
         val response = client.get("$baseUrl/sessions/$sessionId") {
         }
@@ -119,10 +119,10 @@ class JulesApiClient(
         }
     }
 
-    suspend fun listActivities(sessionId: String, pageSize: Int = 50, pageToken: String? = null, createTime: String? = null): ListActivitiesResponse {
+    suspend fun listActivities(sessionId: String, pageSize: Int = 50, pageToken: String? = null, createTime: String? = null, useCache: Boolean = true): ListActivitiesResponse {
         val cacheKey = "listActivities-$sessionId-$pageSize-$pageToken-$createTime"
         val cached = cache.get(cacheKey) as? ListActivitiesResponse
-        if (cached != null) return cached
+        if (useCache && cached != null) return cached
 
         val response = client.get("$baseUrl/sessions/$sessionId/activities") {
             parameter("pageSize", pageSize)
@@ -134,10 +134,10 @@ class JulesApiClient(
         }
     }
 
-    suspend fun getActivity(sessionId: String, activityId: String): Activity {
+    suspend fun getActivity(sessionId: String, activityId: String, useCache: Boolean = true): Activity {
         val cacheKey = "getActivity-$sessionId-$activityId"
         val cached = cache.get(cacheKey) as? Activity
-        if (cached != null) return cached
+        if (useCache && cached != null) return cached
 
         val response = client.get("$baseUrl/sessions/$sessionId/activities/$activityId") {
         }
@@ -146,10 +146,10 @@ class JulesApiClient(
         }
     }
 
-    suspend fun listSources(pageSize: Int = 30, pageToken: String? = null, filter: String? = null): ListSourcesResponse {
+    suspend fun listSources(pageSize: Int = 30, pageToken: String? = null, filter: String? = null, useCache: Boolean = true): ListSourcesResponse {
         val cacheKey = "listSources-$pageSize-$pageToken-$filter"
         val cached = cache.get(cacheKey) as? ListSourcesResponse
-        if (cached != null) return cached
+        if (useCache && cached != null) return cached
 
         val response = client.get("$baseUrl/sources") {
             parameter("pageSize", pageSize)
@@ -165,10 +165,10 @@ class JulesApiClient(
         }
     }
 
-    suspend fun getSource(sourceId: String): Source {
+    suspend fun getSource(sourceId: String, useCache: Boolean = true): Source {
         val cacheKey = "getSource-$sourceId"
         val cached = cache.get(cacheKey) as? Source
-        if (cached != null) return cached
+        if (useCache && cached != null) return cached
 
         val response = client.get("$baseUrl/sources/$sourceId") {
         }
