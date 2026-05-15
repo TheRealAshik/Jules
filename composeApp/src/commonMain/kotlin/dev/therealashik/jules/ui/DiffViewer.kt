@@ -4,22 +4,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import kotlinx.coroutines.delay
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
@@ -45,12 +36,6 @@ fun UnifiedDiffViewer(patch: String, modifier: Modifier = Modifier) {
     ) {
         LazyColumn {
             itemsIndexed(lines) { index, line ->
-                var visible by remember { mutableStateOf(false) }
-                LaunchedEffect(Unit) {
-                    delay(index * 20L)
-                    visible = true
-                }
-
                 val isAddition = line.startsWith("+") && !line.startsWith("+++")
                 val isDeletion = line.startsWith("-") && !line.startsWith("---")
                 val isHunkHeader = line.startsWith("@@")
@@ -75,22 +60,17 @@ fun UnifiedDiffViewer(patch: String, modifier: Modifier = Modifier) {
                 val fontWeight = if (isFileHeader) FontWeight.Bold else null
                 val fontStyle = if (isHunkHeader) FontStyle.Italic else null
 
-                AnimatedVisibility(
-                    visible = visible,
-                    enter = expandVertically() + fadeIn(tween(200))
-                ) {
-                    Text(
-                        text = line,
-                        fontFamily = FontFamily.Monospace,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = textColor,
-                        fontWeight = fontWeight,
-                        fontStyle = fontStyle,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(bgColor)
-                    )
-                }
+                Text(
+                    text = line,
+                    fontFamily = FontFamily.Monospace,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = textColor,
+                    fontWeight = fontWeight,
+                    fontStyle = fontStyle,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(bgColor)
+                )
             }
         }
     }
