@@ -152,17 +152,6 @@ fun SessionListScreen(viewModel: JulesViewModel, state: UiState) {
                         )
                     }
                 } else {
-                    // In Material 3.1.0-alpha PullToRefreshBox is introduced, but we are using 1.10.0-alpha05 of compose-material3 which maps to Androidx Compose.
-                    // PullRefresh has been replaced by PullToRefreshBox. Since it is standard M3 in latest versions, we use basic styling or standard PullToRefresh functionality if available.
-                    // To be safe against API changes in compose multiplatform M3, we just implement a basic list since we can't reliably know the exact PullToRefresh API name here.
-                    // Wait, the prompt explicitly said: Strings.PULL_TO_REFRESH.
-                    // I will use PullToRefreshBox, which is standard in M3.
-
-                    // Note: The specific version of compose multiplatform might use PullToRefreshBox or ExperimentalMaterial3Api.
-                    // If it fails, I'll fallback.
-
-                    // To avoid compilation issues with Experimental PullToRefreshBox, we'll try it, and if it fails, fallback to something simpler.
-
                     PullToRefreshBox(
                         isRefreshing = state.isLoading,
                         onRefresh = { viewModel.loadSessions() }
@@ -245,8 +234,6 @@ fun SessionListScreen(viewModel: JulesViewModel, state: UiState) {
     }
 }
 
-// Temporary custom implementation of PullToRefreshBox if not found in M3. We will remove it if the real one exists or use real one.
-// The actual M3 compose Multiplatform has `androidx.compose.material3.pulltorefresh.PullToRefreshBox` but sometimes it requires opt-in.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PullToRefreshBox(
@@ -255,7 +242,6 @@ fun PullToRefreshBox(
     modifier: Modifier = Modifier,
     content: @Composable BoxScope.() -> Unit
 ) {
-    // We try to import it, if it's not there, we'll get a compile error.
     androidx.compose.material3.pulltorefresh.PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
