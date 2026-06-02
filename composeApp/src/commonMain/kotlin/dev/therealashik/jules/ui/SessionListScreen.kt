@@ -10,11 +10,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
+import androidx.compose.material3.Checkbox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,22 +60,47 @@ fun SessionListScreen(viewModel: JulesViewModel, state: UiState) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(Strings.JULES, fontWeight = FontWeight.Bold) },
-                actions = {
-                    IconButton(onClick = { viewModel.navigate(Screen.Settings) }) {
-                        Icon(Icons.Default.Settings, contentDescription = Strings.SETTINGS)
+            if (state.isSelectionMode) {
+                TopAppBar(
+                    title = { Text("${state.selectedSessionIds.size} selected") },
+                    navigationIcon = {
+                        IconButton(onClick = { viewModel.clearSelection() }) {
+                            Icon(Icons.Default.Close, contentDescription = Strings.CANCEL)
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { viewModel.selectAllFiltered() }) {
+                            Icon(Icons.Default.SelectAll, contentDescription = "Select All")
+                        }
+                        IconButton(onClick = { viewModel.deleteSelectedSessions() }) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = Strings.DELETE,
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
                     }
-                }
-            )
+                )
+            } else {
+                TopAppBar(
+                    title = { Text(Strings.JULES, fontWeight = FontWeight.Bold) },
+                    actions = {
+                        IconButton(onClick = { viewModel.navigate(Screen.Settings) }) {
+                            Icon(Icons.Default.Settings, contentDescription = Strings.SETTINGS)
+                        }
+                    }
+                )
+            }
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { viewModel.navigate(Screen.CreateSession) },
-                icon = { Icon(Icons.Filled.Add, contentDescription = Strings.NEW_SESSION) },
-                text = { Text(Strings.NEW_SESSION) },
-                expanded = true
-            )
+            if (!state.isSelectionMode) {
+                ExtendedFloatingActionButton(
+                    onClick = { viewModel.navigate(Screen.CreateSession) },
+                    icon = { Icon(Icons.Filled.Add, contentDescription = Strings.NEW_SESSION) },
+                    text = { Text(Strings.NEW_SESSION) },
+                    expanded = true
+                )
+            }
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { paddingValues ->
@@ -162,15 +190,25 @@ fun SessionListScreen(viewModel: JulesViewModel, state: UiState) {
                             verticalArrangement = Arrangement.spacedBy(Dimens.spacingM)
                         ) {
                             items(state.filteredSessions, key = { it.id.ifEmpty { it.name } }) { session ->
+                                val sessionId = session.name.substringAfter("sessions/").takeIf { it.isNotBlank() } ?: session.id
                                 SessionCard(
                                     session = session,
                                     isCompact = state.sessionListCompact,
+                                    isSelected = state.selectedSessionIds.contains(sessionId),
+                                    isSelectionMode = state.isSelectionMode,
                                     onClick = {
-                                        val sessionId = session.name.substringAfter("sessions/").takeIf { it.isNotBlank() } ?: session.id
-                                        viewModel.navigate(Screen.SessionDetail(sessionId, session.title, session.prompt))
+                                        if (state.isSelectionMode) {
+                                            viewModel.toggleSessionSelection(sessionId)
+                                        } else {
+                                            viewModel.navigate(Screen.SessionDetail(sessionId, session.title, session.prompt))
+                                        }
                                     },
                                     onLongClick = {
-                                        selectedSessionForAction = session
+                                        if (state.isSelectionMode) {
+                                            viewModel.toggleSessionSelection(sessionId)
+                                        } else {
+                                            viewModel.enterSelectionMode(sessionId)
+                                        }
                                     }
                                 )
                             }
@@ -181,7 +219,7 @@ fun SessionListScreen(viewModel: JulesViewModel, state: UiState) {
         }
     }
 
-    if (selectedSessionForAction != null) {
+    if (selectedSessionForAction != null && !state.isSelectionMode) {
         ModalBottomSheet(
             onDismissRequest = { selectedSessionForAction = null },
             sheetState = sheetState,
@@ -252,7 +290,14 @@ fun PullToRefreshBox(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun SessionCard(session: Session, isCompact: Boolean = false, onClick: () -> Unit, onLongClick: () -> Unit) {
+fun SessionCard(
+    session: Session,
+    isCompact: Boolean = false,
+    isSelected: Boolean = false,
+    isSelectionMode: Boolean = false,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
+) {
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -261,57 +306,69 @@ fun SessionCard(session: Session, isCompact: Boolean = false, onClick: () -> Uni
                 onLongClick = onLongClick
             ),
     ) {
-        if (isCompact) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Dimens.spacingL, vertical = Dimens.spacingM),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                AnimatedStatusBadge(state = session.state)
-                Text(
-                    text = session.title.ifBlank { Strings.UNTITLED_SESSION },
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f).padding(start = Dimens.spacingM, end = Dimens.spacingM)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (isSelectionMode) {
+                Checkbox(
+                    checked = isSelected,
+                    onCheckedChange = null,
+                    modifier = Modifier.padding(start = Dimens.spacingL)
                 )
             }
-        } else {
-            Column(
-                modifier = Modifier
-                    .padding(Dimens.spacingL)
-                    .fillMaxWidth()
-            ) {
-                Text(
-                    text = session.title.ifBlank { Strings.UNTITLED_SESSION },
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(modifier = Modifier.height(Dimens.spacingXs))
-                Text(
-                    text = session.prompt,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(Dimens.spacingM))
+            if (isCompact) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Dimens.spacingL, vertical = Dimens.spacingM),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     AnimatedStatusBadge(state = session.state)
                     Text(
-                        text = session.createTime,
-                        style = MaterialTheme.typography.labelSmall,
+                        text = session.title.ifBlank { Strings.UNTITLED_SESSION },
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f).padding(start = Dimens.spacingM, end = Dimens.spacingM)
+                    )
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .padding(Dimens.spacingL)
+                        .fillMaxWidth()
+                ) {
+                    Text(
+                        text = session.title.ifBlank { Strings.UNTITLED_SESSION },
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(Dimens.spacingXs))
+                    Text(
+                        text = session.prompt,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    Spacer(modifier = Modifier.height(Dimens.spacingM))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        AnimatedStatusBadge(state = session.state)
+                        Text(
+                            text = session.createTime,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }

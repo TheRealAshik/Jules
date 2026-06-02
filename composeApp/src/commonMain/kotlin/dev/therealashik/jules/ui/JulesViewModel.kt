@@ -47,7 +47,9 @@ data class UiState(
     val pageSize: Int = 30,
     val filterStates: Set<SessionState> = emptySet(),
     val filterRepo: String? = null,
-    val sessionListCompact: Boolean = false
+    val sessionListCompact: Boolean = false,
+    val isSelectionMode: Boolean = false,
+    val selectedSessionIds: Set<String> = emptySet()
 ) {
     val filteredSessions: List<Session>
         get() = sessions.filter { session ->
@@ -259,6 +261,53 @@ class JulesViewModel(
                 throw e
             } catch (e: Exception) {
                 _state.update { it.copy(isLoading = false, error = e.message ?: "Failed to delete session") }
+            }
+        }
+    }
+
+    fun enterSelectionMode(sessionId: String) {
+        _state.update { it.copy(isSelectionMode = true, selectedSessionIds = setOf(sessionId)) }
+    }
+
+    fun toggleSessionSelection(sessionId: String) {
+        _state.update { current ->
+            val newSelected = if (current.selectedSessionIds.contains(sessionId)) {
+                current.selectedSessionIds - sessionId
+            } else {
+                current.selectedSessionIds + sessionId
+            }
+            current.copy(
+                selectedSessionIds = newSelected,
+                isSelectionMode = newSelected.isNotEmpty()
+            )
+        }
+    }
+
+    fun selectAllFiltered() {
+        _state.update { current ->
+            val allIds = current.filteredSessions.map { it.name.substringAfter("sessions/").takeIf { it.isNotBlank() } ?: it.id }.toSet()
+            current.copy(selectedSessionIds = allIds)
+        }
+    }
+
+    fun clearSelection() {
+        _state.update { it.copy(isSelectionMode = false, selectedSessionIds = emptySet()) }
+    }
+
+    fun deleteSelectedSessions() {
+        val idsToDelete = state.value.selectedSessionIds
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
+            try {
+                idsToDelete.map { id ->
+                    launch { apiClient.deleteSession(id) }
+                }.forEach { it.join() }
+                loadSessions()
+                clearSelection()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(isLoading = false, error = e.message ?: "Failed to delete sessions") }
             }
         }
     }
