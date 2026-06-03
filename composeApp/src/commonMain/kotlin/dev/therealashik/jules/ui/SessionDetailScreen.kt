@@ -35,19 +35,6 @@ import dev.therealashik.jules.sdk.models.GitPatch
 import dev.therealashik.jules.sdk.models.BashOutput
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.platform.LocalUriHandler
-import kotlinx.coroutines.delay
-
-@Composable
-fun TypewriterText(fullText: String, speedMs: Long = 14L, content: @Composable (String) -> Unit) {
-    var displayed by remember(fullText) { mutableStateOf("") }
-    LaunchedEffect(fullText) {
-        fullText.forEachIndexed { i, _ ->
-            delay(speedMs)
-            displayed = fullText.take(i + 1)
-        }
-    }
-    content(displayed)
-}
 
 private val ATTACHMENT_ITEMS = listOf(
     Triple(Icons.Default.Image, Strings.IMAGES, Strings.CREATE_AND_EDIT),
@@ -76,7 +63,7 @@ fun SessionDetailScreen(viewModel: JulesViewModel, state: UiState, screen: Scree
 
     LaunchedEffect(state.activities.size) {
         if (state.activities.isNotEmpty()) {
-            listState.animateScrollToItem(0)
+            listState.scrollToItem(0)
         }
     }
 
@@ -141,8 +128,8 @@ fun SessionDetailScreen(viewModel: JulesViewModel, state: UiState, screen: Scree
                         items(pullRequests, key = { "pr_${it.url}" }) { pr ->
                             PullRequestCard(pr)
                         }
-                        itemsIndexed(reversedActivities, key = { _, it -> it.id.ifEmpty { it.name } }) { index, activity ->
-                            ChatBubble(activity = activity, session = state.sessionsById[screen.sessionId], viewModel = viewModel, index = index)
+                        items(reversedActivities, key = { it.id.ifEmpty { it.name } }) { activity ->
+                            ChatBubble(activity = activity, session = state.sessionsById[screen.sessionId], viewModel = viewModel)
                         }
                         if (stablePrompt.isNotBlank()) {
                             item(key = "initial_prompt") {
@@ -346,27 +333,18 @@ fun EmptyState(title: String) {
 }
 
 @Composable
-fun ChatBubble(activity: Activity, session: dev.therealashik.jules.sdk.models.Session?, viewModel: JulesViewModel, index: Int = 0) {
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        delay(kotlin.math.min(index * 50L, 400L))
-        visible = true
+fun ChatBubble(activity: Activity, session: dev.therealashik.jules.sdk.models.Session?, viewModel: JulesViewModel) {
+    val agentMessaged = activity.agentMessaged
+    val userMessaged = activity.userMessaged
+    val planGenerated = activity.planGenerated?.plan
+
+    val isAwaitingApproval = session?.state == dev.therealashik.jules.sdk.models.SessionState.AWAITING_PLAN_APPROVAL
+    var editableSteps by remember(planGenerated) {
+        mutableStateOf(planGenerated?.steps ?: emptyList())
     }
-    AnimatedVisibility(
-        visible = visible,
-        enter = slideInVertically { it / 3 } + fadeIn(tween(300))
-    ) {
-        val agentMessaged = activity.agentMessaged
-        val userMessaged = activity.userMessaged
-        val planGenerated = activity.planGenerated?.plan
 
-        val isAwaitingApproval = session?.state == dev.therealashik.jules.sdk.models.SessionState.AWAITING_PLAN_APPROVAL
-        var editableSteps by remember(planGenerated) {
-            mutableStateOf(planGenerated?.steps ?: emptyList())
-        }
-
-        Column(modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.spacingXs)) {
-            if (userMessaged != null) {
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.spacingXs)) {
+        if (userMessaged != null) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
@@ -390,7 +368,7 @@ fun ChatBubble(activity: Activity, session: dev.therealashik.jules.sdk.models.Se
                         )
                     }
                 }
-            } else if (agentMessaged != null) {
+        } else if (agentMessaged != null) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Start
@@ -400,23 +378,21 @@ fun ChatBubble(activity: Activity, session: dev.therealashik.jules.sdk.models.Se
                         shape = RoundedCornerShape(Dimens.bubbleCornerRadius, Dimens.bubbleCornerRadius, Dimens.bubbleCornerRadius, Dimens.spacingXs),
                         modifier = Modifier.padding(end = Dimens.spacingXxl)
                     ) {
-                        TypewriterText(fullText = agentMessaged.agentMessage) { displayedText ->
-                            Markdown(
-                                content = displayedText,
-                                modifier = Modifier.padding(Dimens.spacingM),
-                                colors = markdownColor(
-                                    text = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    codeBackground = MaterialTheme.colorScheme.surface,
-                                ),
-                                typography = markdownTypography(
-                                    text = MaterialTheme.typography.bodyMedium,
-                                    code = MaterialTheme.typography.bodySmall,
-                                )
+                        Markdown(
+                            content = agentMessaged.agentMessage,
+                            modifier = Modifier.padding(Dimens.spacingM),
+                            colors = markdownColor(
+                                text = MaterialTheme.colorScheme.onSurfaceVariant,
+                                codeBackground = MaterialTheme.colorScheme.surface,
+                            ),
+                            typography = markdownTypography(
+                                text = MaterialTheme.typography.bodyMedium,
+                                code = MaterialTheme.typography.bodySmall,
                             )
-                        }
+                        )
                     }
                 }
-            } else if (planGenerated != null) {
+        } else if (planGenerated != null) {
                 var expanded by remember { mutableStateOf(true) }
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
                     OutlinedCard(modifier = Modifier.padding(horizontal = Dimens.spacingL)) {
@@ -583,7 +559,7 @@ fun ChatBubble(activity: Activity, session: dev.therealashik.jules.sdk.models.Se
                         }
                     }
                 }
-            } else if (activity.progressUpdated != null) {
+        } else if (activity.progressUpdated != null) {
                 val progress = activity.progressUpdated!!
                 Column(
                     modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.spacingXxs),
@@ -603,7 +579,7 @@ fun ChatBubble(activity: Activity, session: dev.therealashik.jules.sdk.models.Se
                         )
                     }
                 }
-            } else if (activity.sessionCompleted != null) {
+        } else if (activity.sessionCompleted != null) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center,
@@ -613,7 +589,7 @@ fun ChatBubble(activity: Activity, session: dev.therealashik.jules.sdk.models.Se
                     Spacer(Modifier.width(Dimens.spacingXs))
                     Text(activity.description.ifBlank { Strings.COMPLETED }, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                 }
-            } else if (activity.sessionFailed != null) {
+        } else if (activity.sessionFailed != null) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center,
@@ -627,7 +603,7 @@ fun ChatBubble(activity: Activity, session: dev.therealashik.jules.sdk.models.Se
                         color = MaterialTheme.colorScheme.error
                     )
                 }
-            } else if (activity.planApproved != null) {
+        } else if (activity.planApproved != null) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center,
@@ -637,7 +613,7 @@ fun ChatBubble(activity: Activity, session: dev.therealashik.jules.sdk.models.Se
                     Spacer(Modifier.width(Dimens.spacingXs))
                     Text(activity.description.ifBlank { Strings.PLAN_APPROVED }, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
                 }
-            } else if (activity.artifacts.isEmpty()) {
+        } else if (activity.artifacts.isEmpty()) {
                 val label = activity.description.ifBlank { null }
                 if (label != null) {
                     Text(
@@ -666,7 +642,6 @@ fun ChatBubble(activity: Activity, session: dev.therealashik.jules.sdk.models.Se
                 }
             }
         }
-    }
 }
 
 @Composable
