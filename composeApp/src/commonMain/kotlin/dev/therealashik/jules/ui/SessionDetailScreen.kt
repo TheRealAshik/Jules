@@ -6,7 +6,6 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -75,8 +74,8 @@ fun SessionDetailScreen(viewModel: JulesViewModel, state: UiState, screen: Scree
     }
 
     LaunchedEffect(state.activities.size) {
-        if (state.activities.isNotEmpty()) {
-            listState.animateScrollToItem(0)
+        if (state.activities.isNotEmpty() && listState.firstVisibleItemIndex < 2) {
+            listState.scrollToItem(0)
         }
     }
 
@@ -141,8 +140,8 @@ fun SessionDetailScreen(viewModel: JulesViewModel, state: UiState, screen: Scree
                         items(pullRequests, key = { "pr_${it.url}" }) { pr ->
                             PullRequestCard(pr)
                         }
-                        itemsIndexed(reversedActivities, key = { _, it -> it.id.ifEmpty { it.name } }) { index, activity ->
-                            ChatBubble(activity = activity, session = state.sessionsById[screen.sessionId], viewModel = viewModel, index = index)
+                        items(reversedActivities, key = { it.id.ifEmpty { it.name } }) { activity ->
+                            ChatBubble(activity = activity, session = state.sessionsById[screen.sessionId], viewModel = viewModel)
                         }
                         if (stablePrompt.isNotBlank()) {
                             item(key = "initial_prompt") {
@@ -346,26 +345,17 @@ fun EmptyState(title: String) {
 }
 
 @Composable
-fun ChatBubble(activity: Activity, session: dev.therealashik.jules.sdk.models.Session?, viewModel: JulesViewModel, index: Int = 0) {
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        delay(kotlin.math.min(index * 50L, 400L))
-        visible = true
+fun ChatBubble(activity: Activity, session: dev.therealashik.jules.sdk.models.Session?, viewModel: JulesViewModel) {
+    val agentMessaged = activity.agentMessaged
+    val userMessaged = activity.userMessaged
+    val planGenerated = activity.planGenerated?.plan
+
+    val isAwaitingApproval = session?.state == dev.therealashik.jules.sdk.models.SessionState.AWAITING_PLAN_APPROVAL
+    var editableSteps by remember(planGenerated) {
+        mutableStateOf(planGenerated?.steps ?: emptyList())
     }
-    AnimatedVisibility(
-        visible = visible,
-        enter = slideInVertically { it / 3 } + fadeIn(tween(300))
-    ) {
-        val agentMessaged = activity.agentMessaged
-        val userMessaged = activity.userMessaged
-        val planGenerated = activity.planGenerated?.plan
 
-        val isAwaitingApproval = session?.state == dev.therealashik.jules.sdk.models.SessionState.AWAITING_PLAN_APPROVAL
-        var editableSteps by remember(planGenerated) {
-            mutableStateOf(planGenerated?.steps ?: emptyList())
-        }
-
-        Column(modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.spacingXs)) {
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.spacingXs)) {
             if (userMessaged != null) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -656,9 +646,6 @@ fun ChatBubble(activity: Activity, session: dev.therealashik.jules.sdk.models.Se
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     activity.artifacts.forEach { artifact ->
-                        artifact.changeSet?.gitPatch?.let { gitPatch ->
-                            GitPatchCard(gitPatch)
-                        }
                         artifact.bashOutput?.let { bashOutput ->
                             BashOutputCard(bashOutput)
                         }
@@ -666,7 +653,6 @@ fun ChatBubble(activity: Activity, session: dev.therealashik.jules.sdk.models.Se
                 }
             }
         }
-    }
 }
 
 @Composable
