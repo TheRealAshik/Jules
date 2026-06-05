@@ -74,7 +74,7 @@ fun SessionDetailScreen(viewModel: JulesViewModel, state: UiState, screen: Scree
     }
 
     LaunchedEffect(state.activities.size) {
-        if (state.activities.isNotEmpty()) {
+        if (state.activities.isNotEmpty() && listState.firstVisibleItemIndex < 2) {
             listState.scrollToItem(0)
         }
     }
@@ -346,17 +346,16 @@ fun EmptyState(title: String) {
 
 @Composable
 fun ChatBubble(activity: Activity, session: dev.therealashik.jules.sdk.models.Session?, viewModel: JulesViewModel) {
-    Column {
-        val agentMessaged = activity.agentMessaged
-        val userMessaged = activity.userMessaged
-        val planGenerated = activity.planGenerated?.plan
+    val agentMessaged = activity.agentMessaged
+    val userMessaged = activity.userMessaged
+    val planGenerated = activity.planGenerated?.plan
 
-        val isAwaitingApproval = session?.state == dev.therealashik.jules.sdk.models.SessionState.AWAITING_PLAN_APPROVAL
-        var editableSteps by remember(planGenerated) {
-            mutableStateOf(planGenerated?.steps ?: emptyList())
-        }
+    val isAwaitingApproval = session?.state == dev.therealashik.jules.sdk.models.SessionState.AWAITING_PLAN_APPROVAL
+    var editableSteps by remember(planGenerated) {
+        mutableStateOf(planGenerated?.steps ?: emptyList())
+    }
 
-        Column(modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.spacingXs)) {
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.spacingXs)) {
             if (userMessaged != null) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -654,7 +653,6 @@ fun ChatBubble(activity: Activity, session: dev.therealashik.jules.sdk.models.Se
                 }
             }
         }
-    }
 }
 
 @Composable
