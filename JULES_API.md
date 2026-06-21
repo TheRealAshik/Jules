@@ -15,7 +15,7 @@ All requests require an API key in the `x-goog-api-key` header.
 Get your key at [jules.google.com/settings](https://jules.google.com/settings).
 
 ```bash
-export JULES_API_KEY="your-api-key-here"
+export JULES_API_KEY: 'REDACTED_BY_JULES'
 curl -H "x-goog-api-key: $JULES_API_KEY" https://jules.googleapis.com/v1alpha/sessions
 ```
 
