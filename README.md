@@ -38,7 +38,7 @@ A [Kotlin Multiplatform](https://kotlinlang.org/docs/multiplatform.html) client 
 Get your Jules API key from [jules.google.com/settings](https://jules.google.com/settings).
 Set it as an environment variable — **never commit it**:
 ```bash
-export JULES_API_KEY="your-api-key-here"
+export JULES_API_KEY='REDACTED_BY_JULES'
 ```
 ### Build & Run
 ```bash
