@@ -30,6 +30,7 @@ data class Session(
     val title: String = "",
     val state: SessionState = SessionState.STATE_UNSPECIFIED,
     val url: String = "",
+    val archived: Boolean = false,
     val sourceContext: SourceContext? = null,
     val automationMode: AutomationMode = AutomationMode.AUTOMATION_MODE_UNSPECIFIED,
     val outputs: List<SessionOutput> = emptyList(),

@@ -3,6 +3,8 @@ package dev.therealashik.jules.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.therealashik.jules.KeyValueStore
+import dev.therealashik.jules.notifications.AppNotificationManager
+import dev.therealashik.jules.notifications.NotificationEvent
 import dev.therealashik.jules.sdk.JulesApiClient
 import dev.therealashik.jules.sdk.models.*
 import kotlinx.coroutines.CancellationException
@@ -27,6 +29,8 @@ sealed interface Screen {
 
 enum class ThemePreference { SYSTEM, LIGHT, DARK }
 
+enum class SessionFilter { ALL, ACTIVE, ARCHIVED }
+
 data class UiState(
     val sessions: List<Session> = emptyList(),
     val sessionsById: Map<String, Session> = emptyMap(),
@@ -39,7 +43,8 @@ data class UiState(
     val screen: Screen = Screen.Welcome,
     val apiKey: String = "",
     val themePreference: ThemePreference = ThemePreference.SYSTEM,
-    val pageSize: Int = 30
+    val pageSize: Int = 30,
+    val sessionFilter: SessionFilter = SessionFilter.ACTIVE
 )
 
 private fun String.normalizeSessionId() = substringAfter("sessions/").takeIf { it.isNotBlank() } ?: this
@@ -56,6 +61,9 @@ class JulesViewModel(
         ?: ThemePreference.SYSTEM
     private val initialPageSize = store?.getString("page_size")
         ?.toIntOrNull()?.coerceIn(10, 100) ?: 30
+
+    private val notifiedSessionStates = mutableMapOf<String, SessionState>()
+    private val notificationManager = AppNotificationManager()
 
     private val _state = MutableStateFlow(
         UiState(
@@ -111,6 +119,11 @@ class JulesViewModel(
     fun savePageSize(size: Int) {
         store?.putString("page_size", size.toString())
         _state.update { it.copy(pageSize = size) }
+    }
+
+    fun setSessionFilter(filter: SessionFilter) {
+        _state.update { it.copy(sessionFilter = filter) }
+        loadSessions()
     }
 
     fun navigate(screen: Screen) {
@@ -171,11 +184,39 @@ class JulesViewModel(
         loadPrompts()
     }
 
+    fun archiveSession(sessionId: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
+            try {
+                apiClient.archiveSession(sessionId.normalizeSessionId())
+                loadSessions()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(isLoading = false, error = e.message ?: "Failed to archive session") }
+            }
+        }
+    }
+
+    fun unarchiveSession(sessionId: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
+            try {
+                apiClient.unarchiveSession(sessionId.normalizeSessionId())
+                loadSessions()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(isLoading = false, error = e.message ?: "Failed to unarchive session") }
+            }
+        }
+    }
+
     fun deleteSession(sessionId: String) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             try {
-                apiClient.deleteSession(sessionId)
+                apiClient.deleteSession(sessionId.normalizeSessionId())
                 loadSessions()
             } catch (e: CancellationException) {
                 throw e
@@ -185,13 +226,50 @@ class JulesViewModel(
         }
     }
 
+    private fun checkSessionNotifications(sessions: List<Session>) {
+        sessions.forEach { session ->
+            val sessionId = session.name.substringAfter("sessions/").takeIf { it.isNotBlank() } ?: session.id
+            val currentState = session.state
+            val previousState = notifiedSessionStates[sessionId]
+
+            if (previousState != currentState && currentState in listOf(
+                    SessionState.AWAITING_PLAN_APPROVAL,
+                    SessionState.AWAITING_USER_FEEDBACK,
+                    SessionState.COMPLETED,
+                    SessionState.FAILED
+                )
+            ) {
+                notifiedSessionStates[sessionId] = currentState
+                notificationManager.notifySessionEvent(
+                    NotificationEvent(
+                        sessionId = sessionId,
+                        sessionTitle = session.title,
+                        state = currentState
+                    )
+                )
+            }
+        }
+    }
+
     fun loadSessions() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             try {
-                val response = apiClient.listSessions(pageSize = _state.value.pageSize)
+                val filterParam = when (_state.value.sessionFilter) {
+                    SessionFilter.ARCHIVED -> "archived = true"
+                    SessionFilter.ACTIVE -> "archived = false"
+                    SessionFilter.ALL -> null
+                }
+                val includeArchivedParam = if (_state.value.sessionFilter == SessionFilter.ALL) true else null
+
+                val response = apiClient.listSessions(
+                    pageSize = _state.value.pageSize,
+                    filter = filterParam,
+                    includeArchived = includeArchivedParam
+                )
                 val sessionsById = response.sessions.associateBy { it.id } +
                     response.sessions.associateBy { it.name.normalizeSessionId() }
+                checkSessionNotifications(response.sessions)
                 _state.update { it.copy(isLoading = false, sessions = response.sessions, sessionsById = sessionsById) }
             } catch (e: CancellationException) {
                 throw e

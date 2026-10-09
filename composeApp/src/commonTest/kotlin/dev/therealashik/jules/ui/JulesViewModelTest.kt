@@ -1,6 +1,7 @@
 package dev.therealashik.jules.ui
 
 import dev.therealashik.jules.sdk.JulesApiClient
+import dev.therealashik.jules.sdk.models.Session
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -66,6 +67,29 @@ class JulesViewModelTest {
 
         viewModel.savePageSize(50)
         assertEquals(50, viewModel.state.value.pageSize)
+    }
+
+    @Test
+    fun testSessionFilterSetting() {
+        val client = JulesApiClient("valid_key")
+        val viewModel = JulesViewModel(client, initialApiKey = "valid_key")
+
+        assertEquals(SessionFilter.ACTIVE, viewModel.state.value.sessionFilter)
+
+        viewModel.setSessionFilter(SessionFilter.ARCHIVED)
+        assertEquals(SessionFilter.ARCHIVED, viewModel.state.value.sessionFilter)
+
+        viewModel.setSessionFilter(SessionFilter.ALL)
+        assertEquals(SessionFilter.ALL, viewModel.state.value.sessionFilter)
+    }
+
+    @Test
+    fun testSessionArchivedFieldDefault() {
+        val session = Session(id = "123", title = "Test")
+        assertEquals(false, session.archived)
+
+        val archivedSession = Session(id = "123", title = "Test", archived = true)
+        assertEquals(true, archivedSession.archived)
     }
 
     @Test

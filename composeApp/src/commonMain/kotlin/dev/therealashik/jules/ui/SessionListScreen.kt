@@ -10,18 +10,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -109,36 +108,62 @@ fun SessionListScreen(viewModel: JulesViewModel, state: UiState) {
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            if (state.sessions.isEmpty() && !state.isLoading) {
-                EmptySessionsView(
-                    onCreateSession = { viewModel.navigate(Screen.CreateSession) }
-                )
-            } else {
-                PullToRefreshBox(
-                    isRefreshing = state.isLoading,
-                    onRefresh = { viewModel.loadSessions() }
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Filter Chips
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Dimens.spacingL, vertical = Dimens.spacingXs),
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.spacingS)
                 ) {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(
-                            start = Dimens.spacingL,
-                            end = Dimens.spacingL,
-                            top = Dimens.spacingM,
-                            bottom = 96.dp
-                        ),
-                        verticalArrangement = Arrangement.spacedBy(Dimens.spacingM)
+                    FilterChip(
+                        selected = state.sessionFilter == SessionFilter.ACTIVE,
+                        onClick = { viewModel.setSessionFilter(SessionFilter.ACTIVE) },
+                        label = { Text(Strings.FILTER_ACTIVE) }
+                    )
+                    FilterChip(
+                        selected = state.sessionFilter == SessionFilter.ARCHIVED,
+                        onClick = { viewModel.setSessionFilter(SessionFilter.ARCHIVED) },
+                        label = { Text(Strings.FILTER_ARCHIVED) }
+                    )
+                    FilterChip(
+                        selected = state.sessionFilter == SessionFilter.ALL,
+                        onClick = { viewModel.setSessionFilter(SessionFilter.ALL) },
+                        label = { Text(Strings.FILTER_ALL) }
+                    )
+                }
+
+                if (state.sessions.isEmpty() && !state.isLoading) {
+                    EmptySessionsView(
+                        onCreateSession = { viewModel.navigate(Screen.CreateSession) }
+                    )
+                } else {
+                    PullToRefreshBox(
+                        isRefreshing = state.isLoading,
+                        onRefresh = { viewModel.loadSessions() }
                     ) {
-                        items(state.sessions, key = { it.id.ifEmpty { it.name } }) { session ->
-                            SessionCard(
-                                session = session,
-                                onClick = {
-                                    val sessionId = session.name.substringAfter("sessions/").takeIf { it.isNotBlank() } ?: session.id
-                                    viewModel.navigate(Screen.SessionDetail(sessionId, session.title, session.prompt))
-                                },
-                                onLongClick = {
-                                    selectedSessionForAction = session
-                                }
-                            )
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(
+                                start = Dimens.spacingL,
+                                end = Dimens.spacingL,
+                                top = Dimens.spacingS,
+                                bottom = 96.dp
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(Dimens.spacingM)
+                        ) {
+                            items(state.sessions, key = { it.id.ifEmpty { it.name } }) { session ->
+                                SessionCard(
+                                    session = session,
+                                    onClick = {
+                                        val sessionId = session.name.substringAfter("sessions/").takeIf { it.isNotBlank() } ?: session.id
+                                        viewModel.navigate(Screen.SessionDetail(sessionId, session.title, session.prompt))
+                                    },
+                                    onLongClick = {
+                                        selectedSessionForAction = session
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -165,6 +190,36 @@ fun SessionListScreen(viewModel: JulesViewModel, state: UiState) {
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
+
+                if (selectedSessionForAction?.archived == true) {
+                    ListItem(
+                        headlineContent = { Text(Strings.UNARCHIVE_SESSION) },
+                        leadingContent = {
+                            Icon(
+                                Icons.Default.Unarchive,
+                                contentDescription = Strings.UNARCHIVE_SESSION
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            selectedSessionForAction?.id?.let { viewModel.unarchiveSession(it) }
+                            selectedSessionForAction = null
+                        }
+                    )
+                } else {
+                    ListItem(
+                        headlineContent = { Text(Strings.ARCHIVE_SESSION) },
+                        leadingContent = {
+                            Icon(
+                                Icons.Default.Archive,
+                                contentDescription = Strings.ARCHIVE_SESSION
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            selectedSessionForAction?.id?.let { viewModel.archiveSession(it) }
+                            selectedSessionForAction = null
+                        }
+                    )
+                }
 
                 ListItem(
                     headlineContent = { Text(Strings.DELETE_SESSION, color = MaterialTheme.colorScheme.error) },
@@ -309,7 +364,6 @@ fun SessionCard(session: Session, onClick: () -> Unit, onLongClick: () -> Unit) 
                 .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(Dimens.spacingS)
         ) {
-            // Title up to 2 lines
             Text(
                 text = displayTitle,
                 style = MaterialTheme.typography.titleMedium,
@@ -319,7 +373,6 @@ fun SessionCard(session: Session, onClick: () -> Unit, onLongClick: () -> Unit) 
                 color = MaterialTheme.colorScheme.onSurface
             )
 
-            // Optional Prompt / Description
             if (displayPrompt != null) {
                 Text(
                     text = displayPrompt,
@@ -332,13 +385,35 @@ fun SessionCard(session: Session, onClick: () -> Unit, onLongClick: () -> Unit) 
 
             Spacer(modifier = Modifier.height(Dimens.spacingXs))
 
-            // Footer row: Status badge + Timestamp + Optional repo context
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                StateBadge(state = session.state)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.spacingS),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    StateBadge(state = session.state)
+
+                    if (session.archived) {
+                        AssistChip(
+                            onClick = {},
+                            label = {
+                                Text(
+                                    text = Strings.ARCHIVED_BADGE,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            border = null
+                        )
+                    }
+                }
 
                 if (formattedTime.isNotBlank()) {
                     Text(
