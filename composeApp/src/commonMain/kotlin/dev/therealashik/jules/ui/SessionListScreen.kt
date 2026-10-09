@@ -6,12 +6,16 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,12 +36,18 @@ fun SessionListScreen(viewModel: JulesViewModel, state: UiState) {
     val uriHandler = LocalUriHandler.current
 
     LaunchedEffect(state.error) {
-        state.error?.let {
-            snackbarHostState.showSnackbar(it)
+        state.error?.let { errorMsg ->
+            val result = snackbarHostState.showSnackbar(
+                message = errorMsg,
+                actionLabel = Strings.RETRY,
+                duration = SnackbarDuration.Long
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                viewModel.loadSessions()
+            }
         }
     }
 
-    // We trigger load in ViewModel if sessions are empty, though it's already done by navigate
     LaunchedEffect(Unit) {
         if (state.sessions.isEmpty()) {
             viewModel.loadSessions()
@@ -47,7 +57,31 @@ fun SessionListScreen(viewModel: JulesViewModel, state: UiState) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(Strings.JULES, fontWeight = FontWeight.Bold) },
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.spacingS)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = Strings.SPARKLE,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        }
+                        Text(
+                            text = Strings.JULES,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                },
                 actions = {
                     IconButton(onClick = { viewModel.navigate(Screen.Settings) }) {
                         Icon(Icons.Default.Settings, contentDescription = Strings.SETTINGS)
@@ -59,68 +93,77 @@ fun SessionListScreen(viewModel: JulesViewModel, state: UiState) {
             ExtendedFloatingActionButton(
                 onClick = { viewModel.navigate(Screen.CreateSession) },
                 icon = { Icon(Icons.Filled.Add, contentDescription = Strings.NEW_SESSION) },
-                text = { Text(Strings.NEW_SESSION) },
-                expanded = true
+                text = { Text(Strings.NEW_SESSION, fontWeight = FontWeight.SemiBold) },
+                expanded = true,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                shape = RoundedCornerShape(28.dp)
             )
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        contentWindowInsets = WindowInsets.safeDrawing
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            if (state.sessions.isEmpty() && !state.isLoading) {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Filter Chips
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Dimens.spacingL, vertical = Dimens.spacingXs),
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.spacingS)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Warning,
-                        contentDescription = Strings.EMPTY,
-                        modifier = Modifier.size(Dimens.iconSizeXl),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    FilterChip(
+                        selected = state.sessionFilter == SessionFilter.ACTIVE,
+                        onClick = { viewModel.setSessionFilter(SessionFilter.ACTIVE) },
+                        label = { Text(Strings.FILTER_ACTIVE) }
                     )
-                    Spacer(Modifier.height(Dimens.spacingL))
-                    Text(
-                        text = Strings.NO_SESSIONS_YET,
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    FilterChip(
+                        selected = state.sessionFilter == SessionFilter.ARCHIVED,
+                        onClick = { viewModel.setSessionFilter(SessionFilter.ARCHIVED) },
+                        label = { Text(Strings.FILTER_ARCHIVED) }
+                    )
+                    FilterChip(
+                        selected = state.sessionFilter == SessionFilter.ALL,
+                        onClick = { viewModel.setSessionFilter(SessionFilter.ALL) },
+                        label = { Text(Strings.FILTER_ALL) }
                     )
                 }
-            } else {
-                // In Material 3.1.0-alpha PullToRefreshBox is introduced, but we are using 1.10.0-alpha05 of compose-material3 which maps to Androidx Compose.
-                // PullRefresh has been replaced by PullToRefreshBox. Since it is standard M3 in latest versions, we use basic styling or standard PullToRefresh functionality if available.
-                // To be safe against API changes in compose multiplatform M3, we just implement a basic list since we can't reliably know the exact PullToRefresh API name here.
-                // Wait, the prompt explicitly said: Strings.PULL_TO_REFRESH.
-                // I will use PullToRefreshBox, which is standard in M3.
 
-                // Note: The specific version of compose multiplatform might use PullToRefreshBox or ExperimentalMaterial3Api.
-                // If it fails, I'll fallback.
-
-                // To avoid compilation issues with Experimental PullToRefreshBox, we'll try it, and if it fails, fallback to something simpler.
-
-                PullToRefreshBox(
-                    isRefreshing = state.isLoading,
-                    onRefresh = { viewModel.loadSessions() }
-                ) {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(Dimens.spacingL),
-                        verticalArrangement = Arrangement.spacedBy(Dimens.spacingM)
+                if (state.sessions.isEmpty() && !state.isLoading) {
+                    EmptySessionsView(
+                        onCreateSession = { viewModel.navigate(Screen.CreateSession) }
+                    )
+                } else {
+                    PullToRefreshBox(
+                        isRefreshing = state.isLoading,
+                        onRefresh = { viewModel.loadSessions() }
                     ) {
-                        items(state.sessions, key = { it.id.ifEmpty { it.name } }) { session ->
-                            SessionCard(
-                                session = session,
-                                onClick = {
-                                    val sessionId = session.name.substringAfter("sessions/").takeIf { it.isNotBlank() } ?: session.id
-                                    viewModel.navigate(Screen.SessionDetail(sessionId, session.title, session.prompt))
-                                },
-                                onLongClick = {
-                                    selectedSessionForAction = session
-                                }
-                            )
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(
+                                start = Dimens.spacingL,
+                                end = Dimens.spacingL,
+                                top = Dimens.spacingS,
+                                bottom = 96.dp
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(Dimens.spacingM)
+                        ) {
+                            items(state.sessions, key = { it.id.ifEmpty { it.name } }) { session ->
+                                SessionCard(
+                                    session = session,
+                                    onClick = {
+                                        val sessionId = session.name.substringAfter("sessions/").takeIf { it.isNotBlank() } ?: session.id
+                                        viewModel.navigate(Screen.SessionDetail(sessionId, session.title, session.prompt))
+                                    },
+                                    onLongClick = {
+                                        selectedSessionForAction = session
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -132,7 +175,7 @@ fun SessionListScreen(viewModel: JulesViewModel, state: UiState) {
         ModalBottomSheet(
             onDismissRequest = { selectedSessionForAction = null },
             sheetState = sheetState,
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
         ) {
             Column(
                 modifier = Modifier
@@ -144,9 +187,39 @@ fun SessionListScreen(viewModel: JulesViewModel, state: UiState) {
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(start = Dimens.spacingL, end = Dimens.spacingL, top = Dimens.spacingS, bottom = Dimens.spacingL),
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
+
+                if (selectedSessionForAction?.archived == true) {
+                    ListItem(
+                        headlineContent = { Text(Strings.UNARCHIVE_SESSION) },
+                        leadingContent = {
+                            Icon(
+                                Icons.Default.Unarchive,
+                                contentDescription = Strings.UNARCHIVE_SESSION
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            selectedSessionForAction?.id?.let { viewModel.unarchiveSession(it) }
+                            selectedSessionForAction = null
+                        }
+                    )
+                } else {
+                    ListItem(
+                        headlineContent = { Text(Strings.ARCHIVE_SESSION) },
+                        leadingContent = {
+                            Icon(
+                                Icons.Default.Archive,
+                                contentDescription = Strings.ARCHIVE_SESSION
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            selectedSessionForAction?.id?.let { viewModel.archiveSession(it) }
+                            selectedSessionForAction = null
+                        }
+                    )
+                }
 
                 ListItem(
                     headlineContent = { Text(Strings.DELETE_SESSION, color = MaterialTheme.colorScheme.error) },
@@ -163,46 +236,115 @@ fun SessionListScreen(viewModel: JulesViewModel, state: UiState) {
                     }
                 )
 
-                ListItem(
-                    headlineContent = { Text(Strings.OPEN_IN_JULES) },
-                    leadingContent = {
-                        Icon(
-                            Icons.Default.OpenInNew,
-                            contentDescription = Strings.OPEN_IN_JULES
-                        )
-                    },
-                    modifier = Modifier.clickable {
-                        selectedSessionForAction?.url?.takeIf { it.isNotBlank() }?.let { uriHandler.openUri(it) }
-                        selectedSessionForAction = null
-                    }
-                )
+                if (!selectedSessionForAction?.url.isNullOrBlank()) {
+                    ListItem(
+                        headlineContent = { Text(Strings.OPEN_IN_JULES) },
+                        leadingContent = {
+                            Icon(
+                                Icons.Default.OpenInNew,
+                                contentDescription = Strings.OPEN_IN_JULES
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            selectedSessionForAction?.url?.let { uriHandler.openUri(it) }
+                            selectedSessionForAction = null
+                        }
+                    )
+                }
             }
         }
     }
 }
 
-// Temporary custom implementation of PullToRefreshBox if not found in M3. We will remove it if the real one exists or use real one.
-// The actual M3 compose Multiplatform has `androidx.compose.material3.pulltorefresh.PullToRefreshBox` but sometimes it requires opt-in.
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PullToRefreshBox(
-    isRefreshing: Boolean,
-    onRefresh: () -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable BoxScope.() -> Unit
-) {
-    // We try to import it, if it's not there, we'll get a compile error.
-    androidx.compose.material3.pulltorefresh.PullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = onRefresh,
-        modifier = modifier,
-        content = content
-    )
+private fun EmptySessionsView(onCreateSession: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(Dimens.spacingXl),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        ElevatedCard(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.elevatedCardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(Dimens.spacingXl),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(Dimens.spacingM)
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.size(64.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Terminal,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                }
+
+                Text(
+                    text = Strings.NO_SESSIONS_YET,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Text(
+                    text = Strings.CREATE_FIRST_SESSION_DESCRIPTION,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(Dimens.spacingS))
+
+                Button(
+                    onClick = onCreateSession,
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.spacingS),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = Strings.NEW_SESSION,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SessionCard(session: Session, onClick: () -> Unit, onLongClick: () -> Unit) {
+    val displayTitle = session.title.ifBlank { Strings.UNTITLED_SESSION }
+    val displayPrompt = session.prompt.takeIf { it.isNotBlank() && it != displayTitle }
+    val formattedTime = formatSessionTimestamp(session.updateTime.ifEmpty { session.createTime })
+
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -210,39 +352,76 @@ fun SessionCard(session: Session, onClick: () -> Unit, onLongClick: () -> Unit) 
                 onClick = onClick,
                 onLongClick = onLongClick
             ),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp)
     ) {
         Column(
             modifier = Modifier
                 .padding(Dimens.spacingL)
-                .fillMaxWidth()
+                .fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spacingS)
         ) {
             Text(
-                text = session.title.ifBlank { Strings.UNTITLED_SESSION },
+                text = displayTitle,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(Dimens.spacingXs))
-            Text(
-                text = session.prompt,
-                style = MaterialTheme.typography.bodyMedium,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurface
             )
-            Spacer(modifier = Modifier.height(Dimens.spacingM))
+
+            if (displayPrompt != null) {
+                Text(
+                    text = displayPrompt,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(modifier = Modifier.height(Dimens.spacingXs))
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                StateBadge(state = session.state)
-                Text(
-                    text = session.createTime,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.spacingS),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    StateBadge(state = session.state)
+
+                    if (session.archived) {
+                        AssistChip(
+                            onClick = {},
+                            label = {
+                                Text(
+                                    text = Strings.ARCHIVED_BADGE,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            border = null
+                        )
+                    }
+                }
+
+                if (formattedTime.isNotBlank()) {
+                    Text(
+                        text = formattedTime,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
@@ -255,16 +434,40 @@ fun StateBadge(state: SessionState) {
         SessionState.FAILED -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
         SessionState.IN_PROGRESS, SessionState.PLANNING -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
         SessionState.AWAITING_PLAN_APPROVAL, SessionState.AWAITING_USER_FEEDBACK -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
-        else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
+        else -> MaterialTheme.colorScheme.surfaceContainerHigh to MaterialTheme.colorScheme.onSurfaceVariant
     }
+
+    val stateText = state.name.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() }
 
     AssistChip(
         onClick = {},
-        label = { Text(state.name.replace("_", " ")) },
+        label = {
+            Text(
+                text = stateText,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Medium
+            )
+        },
         colors = AssistChipDefaults.assistChipColors(
             containerColor = containerColor,
             labelColor = contentColor
         ),
         border = null
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PullToRefreshBox(
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit
+) {
+    androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        modifier = modifier,
+        content = content
     )
 }

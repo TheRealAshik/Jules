@@ -34,9 +34,6 @@ class JulesApiClient(
 
     private val baseUrl = "https://jules.googleapis.com/v1alpha"
 
-    // TODO: Implement caching system — cache GET responses (sessions, activities, sources)
-    //       with TTL-based invalidation and eviction on mutating calls (POST/DELETE).
-
     private suspend inline fun <reified T> HttpResponse.bodyOrThrow(): T {
         if (!status.isSuccess()) {
             throw Exception("API Error: ${status.value} - ${bodyAsText()}")
@@ -51,8 +48,13 @@ class JulesApiClient(
         return response.bodyOrThrow()
     }
 
-    suspend fun listSessions(pageSize: Int = 30, pageToken: String? = null): ListSessionsResponse {
-        val cacheKey = "listSessions-$pageSize-$pageToken"
+    suspend fun listSessions(
+        pageSize: Int = 30,
+        pageToken: String? = null,
+        filter: String? = null,
+        includeArchived: Boolean? = null
+    ): ListSessionsResponse {
+        val cacheKey = "listSessions-$pageSize-$pageToken-$filter-$includeArchived"
         val cached = cache.get(cacheKey) as? ListSessionsResponse
         if (cached != null) return cached
 
@@ -60,6 +62,12 @@ class JulesApiClient(
             parameter("pageSize", pageSize)
             if (pageToken != null) {
                 parameter("pageToken", pageToken)
+            }
+            if (filter != null) {
+                parameter("filter", filter)
+            }
+            if (includeArchived != null) {
+                parameter("includeArchived", includeArchived)
             }
         }
         return response.bodyOrThrow<ListSessionsResponse>().also {
@@ -76,6 +84,24 @@ class JulesApiClient(
         }
         return response.bodyOrThrow<Session>().also {
             cache.set(cacheKey, it)
+        }
+    }
+
+    suspend fun archiveSession(sessionId: String): Session {
+        val response = client.post("$baseUrl/sessions/$sessionId:archive") {
+            setBody(emptyMap<String, String>())
+        }
+        return response.bodyOrThrow<Session>().also {
+            cache.removeMatching { key -> key.contains(sessionId) || key.startsWith("listSessions-") }
+        }
+    }
+
+    suspend fun unarchiveSession(sessionId: String): Session {
+        val response = client.post("$baseUrl/sessions/$sessionId:unarchive") {
+            setBody(emptyMap<String, String>())
+        }
+        return response.bodyOrThrow<Session>().also {
+            cache.removeMatching { key -> key.contains(sessionId) || key.startsWith("listSessions-") }
         }
     }
 
