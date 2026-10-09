@@ -103,4 +103,18 @@ class JulesViewModelTest {
         viewModel.clearError()
         assertNull(viewModel.state.value.error)
     }
+
+    @Test
+    fun testStartNewChatResetsSessionAndActivities() {
+        val client = JulesApiClient("valid_key")
+        val viewModel = JulesViewModel(client, initialApiKey = "valid_key")
+
+        viewModel.navigate(Screen.SessionDetail("sess_123", "Session 123", "Initial Prompt"))
+        assertEquals("sess_123", viewModel.state.value.activeSessionId)
+
+        viewModel.startNewChat()
+        assertNull(viewModel.state.value.activeSessionId)
+        assertEquals(emptyList(), viewModel.state.value.activities)
+        assertEquals(Screen.SessionList, viewModel.state.value.screen)
+    }
 }

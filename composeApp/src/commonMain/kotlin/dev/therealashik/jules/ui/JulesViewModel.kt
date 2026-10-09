@@ -35,6 +35,10 @@ data class UiState(
     val sessions: List<Session> = emptyList(),
     val sessionsById: Map<String, Session> = emptyMap(),
     val activities: List<Activity> = emptyList(),
+    val activitiesNextPageToken: String? = null,
+    val hasMoreActivities: Boolean = false,
+    val isLoadingMoreActivities: Boolean = false,
+    val activeSessionId: String? = null,
     val promptItems: List<PromptItem> = emptyList(),
     val selectedGalleryPrompts: List<PromptItem> = emptyList(),
     val sources: List<Source> = emptyList(),
@@ -77,6 +81,19 @@ class JulesViewModel(
 
     fun clearError() {
         _state.update { it.copy(error = null) }
+    }
+
+    fun startNewChat() {
+        _state.update {
+            it.copy(
+                activeSessionId = null,
+                activities = emptyList(),
+                activitiesNextPageToken = null,
+                hasMoreActivities = false,
+                selectedGalleryPrompts = emptyList(),
+                screen = Screen.SessionList
+            )
+        }
     }
 
     fun saveApiKey(key: String) {
@@ -132,8 +149,16 @@ class JulesViewModel(
         }
         _state.update { it.copy(screen = screen, error = null) }
         when (screen) {
-            is Screen.SessionList -> loadSessions()
-            is Screen.SessionDetail -> loadActivities(screen.sessionId)
+            is Screen.SessionList -> {
+                if (state.value.activeSessionId == null) {
+                    _state.update { it.copy(activities = emptyList(), activitiesNextPageToken = null, hasMoreActivities = false) }
+                }
+                loadSessions()
+            }
+            is Screen.SessionDetail -> {
+                _state.update { it.copy(activeSessionId = screen.sessionId) }
+                loadActivities(screen.sessionId, initialPromptFallback = screen.prompt)
+            }
             is Screen.PromptGallery -> loadPrompts()
             Screen.CreateSession -> {
                 loadPrompts()
@@ -217,7 +242,11 @@ class JulesViewModel(
             _state.update { it.copy(isLoading = true, error = null) }
             try {
                 apiClient.deleteSession(sessionId.normalizeSessionId())
-                loadSessions()
+                if (_state.value.activeSessionId == sessionId.normalizeSessionId()) {
+                    startNewChat()
+                } else {
+                    loadSessions()
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -297,8 +326,16 @@ class JulesViewModel(
                         sourceContext = sourceContext
                     )
                 )
-                _state.update { it.copy(isLoading = false) }
-                navigate(Screen.SessionDetail(session.name.normalizeSessionId(), session.title, finalPrompt))
+                val newSessionId = session.name.normalizeSessionId()
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        activeSessionId = newSessionId,
+                        selectedGalleryPrompts = emptyList()
+                    )
+                }
+                loadSessions()
+                navigate(Screen.SessionDetail(newSessionId, session.title.ifBlank { title }, finalPrompt))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -307,12 +344,33 @@ class JulesViewModel(
         }
     }
 
-    fun loadActivities(sessionId: String) {
+    fun loadActivities(sessionId: String, initialPromptFallback: String = "") {
+        val normalizedId = sessionId.normalizeSessionId()
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
+            _state.update { it.copy(isLoading = true, error = null, activeSessionId = normalizedId) }
             try {
-                val response = apiClient.listActivities(sessionId.normalizeSessionId(), pageSize = _state.value.pageSize)
-                _state.update { it.copy(isLoading = false, activities = response.activities) }
+                val response = apiClient.listActivities(normalizedId, pageSize = _state.value.pageSize)
+                val fetchedActivities = response.activities
+
+                // Retrieve session metadata prompt if available
+                val sessionPrompt = _state.value.sessionsById[normalizedId]?.prompt
+                    .takeIf { !it.isNullOrBlank() }
+                    ?: initialPromptFallback
+
+                val finalActivities = processActivitiesWithInitialPrompt(
+                    normalizedId = normalizedId,
+                    sessionPrompt = sessionPrompt,
+                    activities = fetchedActivities
+                )
+
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        activities = finalActivities,
+                        activitiesNextPageToken = response.nextPageToken,
+                        hasMoreActivities = !response.nextPageToken.isNullOrBlank()
+                    )
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -321,12 +379,79 @@ class JulesViewModel(
         }
     }
 
+    fun loadMoreActivities() {
+        val activeId = _state.value.activeSessionId ?: return
+        val pageToken = _state.value.activitiesNextPageToken ?: return
+        if (_state.value.isLoadingMoreActivities) return
+
+        viewModelScope.launch {
+            _state.update { it.copy(isLoadingMoreActivities = true) }
+            try {
+                val response = apiClient.listActivities(activeId, pageSize = _state.value.pageSize, pageToken = pageToken)
+                val existingList = _state.value.activities
+                val existingIds = existingList.map { it.id.ifEmpty { it.name } }.toSet()
+                val newUnique = response.activities.filterNot { existingIds.contains(it.id.ifEmpty { it.name }) }
+
+                val sessionPrompt = _state.value.sessionsById[activeId]?.prompt ?: ""
+                val combined = processActivitiesWithInitialPrompt(
+                    normalizedId = activeId,
+                    sessionPrompt = sessionPrompt,
+                    activities = existingList + newUnique
+                )
+
+                _state.update {
+                    it.copy(
+                        isLoadingMoreActivities = false,
+                        activities = combined,
+                        activitiesNextPageToken = response.nextPageToken,
+                        hasMoreActivities = !response.nextPageToken.isNullOrBlank()
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(isLoadingMoreActivities = false, error = e.message ?: "Failed to load more activities") }
+            }
+        }
+    }
+
+    private fun processActivitiesWithInitialPrompt(
+        normalizedId: String,
+        sessionPrompt: String,
+        activities: List<Activity>
+    ): List<Activity> {
+        val hasUserPromptActivity = activities.any {
+            it.userMessaged != null || it.originator.equals("USER", ignoreCase = true)
+        }
+
+        val listWithPrompt = if (!hasUserPromptActivity && sessionPrompt.isNotBlank()) {
+            val initialUserActivity = Activity(
+                id = "initial_prompt_$normalizedId",
+                name = "activities/initial_prompt_$normalizedId",
+                originator = "USER",
+                description = sessionPrompt,
+                userMessaged = UserMessaged(userMessage = sessionPrompt)
+            )
+            listOf(initialUserActivity) + activities
+        } else {
+            activities
+        }
+
+        // Deduplicate activities by non-empty ID/name while retaining exact chronological sequence
+        val seenIds = mutableSetOf<String>()
+        return listWithPrompt.filter { activity ->
+            val key = activity.id.ifEmpty { activity.name }
+            if (key.isBlank()) true else seenIds.add(key)
+        }
+    }
+
     fun sendMessage(sessionId: String, prompt: String) {
+        val normalizedId = sessionId.normalizeSessionId()
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             try {
-                apiClient.sendMessage(sessionId.normalizeSessionId(), SendMessageRequest(prompt = prompt))
-                loadActivities(sessionId)
+                apiClient.sendMessage(normalizedId, SendMessageRequest(prompt = prompt))
+                loadActivities(normalizedId)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -336,11 +461,12 @@ class JulesViewModel(
     }
 
     fun approvePlan(sessionId: String) {
+        val normalizedId = sessionId.normalizeSessionId()
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             try {
-                apiClient.approvePlan(sessionId.normalizeSessionId())
-                loadActivities(sessionId)
+                apiClient.approvePlan(normalizedId)
+                loadActivities(normalizedId)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
