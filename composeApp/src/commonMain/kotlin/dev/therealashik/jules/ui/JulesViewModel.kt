@@ -16,6 +16,8 @@ import dev.therealashik.jules.gallery.PromptGalleryRepository
 import dev.therealashik.jules.gallery.PromptItem
 
 sealed interface Screen {
+    data object Welcome : Screen
+    data object ApiKeySetup : Screen
     data object SessionList : Screen
     data object CreateSession : Screen
     data class SessionDetail(val sessionId: String, val title: String, val prompt: String = "") : Screen
@@ -34,7 +36,7 @@ data class UiState(
     val sources: List<Source> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    val screen: Screen = Screen.SessionList,
+    val screen: Screen = Screen.Welcome,
     val apiKey: String = "",
     val themePreference: ThemePreference = ThemePreference.SYSTEM,
     val pageSize: Int = 30
@@ -58,19 +60,47 @@ class JulesViewModel(
     private val _state = MutableStateFlow(
         UiState(
             apiKey = initialApiKey,
-            screen = if (initialApiKey.isBlank()) Screen.Settings else Screen.SessionList,
+            screen = if (initialApiKey.isBlank()) Screen.Welcome else Screen.SessionList,
             themePreference = initialTheme,
             pageSize = initialPageSize
         )
     )
     val state: StateFlow<UiState> = _state.asStateFlow()
 
+    fun clearError() {
+        _state.update { it.copy(error = null) }
+    }
+
     fun saveApiKey(key: String) {
-        store?.putString("api_key", key)
-        apiClient.close()
-        apiClient = JulesApiClient(key)
-        _state.update { it.copy(apiKey = key) }
-        navigate(Screen.SessionList)
+        val trimmedKey = key.trim()
+        if (trimmedKey.isBlank()) {
+            _state.update { it.copy(error = Strings.INVALID_API_KEY) }
+            return
+        }
+
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
+            val testClient = JulesApiClient(trimmedKey)
+            try {
+                testClient.listSessions(pageSize = 1)
+                store?.putString("api_key", trimmedKey)
+                apiClient.close()
+                apiClient = testClient
+                _state.update { it.copy(isLoading = false, apiKey = trimmedKey, error = null) }
+                navigate(Screen.SessionList)
+            } catch (e: CancellationException) {
+                testClient.close()
+                throw e
+            } catch (e: Exception) {
+                testClient.close()
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        error = e.message?.takeIf { msg -> msg.isNotBlank() } ?: Strings.INVALID_API_KEY
+                    )
+                }
+            }
+        }
     }
 
     fun saveThemePreference(theme: ThemePreference) {
@@ -96,7 +126,7 @@ class JulesViewModel(
                 loadPrompts()
                 loadSources()
             }
-            Screen.Settings -> Unit
+            Screen.Welcome, Screen.ApiKeySetup, Screen.Settings -> Unit
         }
     }
 

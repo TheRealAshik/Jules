@@ -2,6 +2,17 @@ package dev.therealashik.jules.ui
 
 object Strings {
     const val JULES = "Jules"
+    const val MEET_JULES = "Meet Jules"
+    const val WELCOME_DESCRIPTION = "Your AI-powered coding companion. Create, manage, and track coding sessions with ease."
+    const val GET_STARTED = "Get Started"
+    const val CODING_JOURNEY_STARTS_HERE = "Your coding journey starts here."
+    const val API_KEY_SETUP = "API Key Setup"
+    const val API_KEY_EXPLANATION = "Jules requires a valid API key to connect to the Jules API, execute tasks, and manage your coding sessions."
+    const val WHY_API_KEY_NEEDED = "Why is an API key required?"
+    const val WHY_API_KEY_ANSWER = "Your API key securely authenticates your requests directly with Google's Jules API. It is stored safely on your device and never shared."
+    const val VALIDATE_AND_SAVE = "Validate & Save"
+    const val VALIDATING_KEY = "Validating API key..."
+    const val INVALID_API_KEY = "Invalid API key or network error. Please verify your key and try again."
     const val NEW_SESSION = "New Session"
     const val SETTINGS = "Settings"
     const val PROMPT_GALLERY = "Prompt Gallery"

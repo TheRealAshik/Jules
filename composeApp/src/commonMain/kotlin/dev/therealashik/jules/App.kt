@@ -15,18 +15,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.therealashik.jules.sdk.JulesApiClient
+import dev.therealashik.jules.ui.ApiKeySetupScreen
 import dev.therealashik.jules.ui.CreateSessionScreen
 import dev.therealashik.jules.ui.JulesViewModel
 import dev.therealashik.jules.ui.Screen
 import dev.therealashik.jules.ui.SessionDetailScreen
 import dev.therealashik.jules.ui.SessionListScreen
 import dev.therealashik.jules.ui.SettingsScreen
+import dev.therealashik.jules.ui.WelcomeScreen
 import dev.therealashik.jules.ui.PromptGalleryScreen
 import dev.therealashik.jules.gallery.PromptGalleryRepository
 import dev.therealashik.jules.ui.ThemePreference
 import dev.therealashik.jules.ui.CrashDialog
 
-// A purple seed color fallback
 private val LightColorScheme = lightColorScheme(
     primary = Color(0xFF6750A4),
     onPrimary = Color(0xFFFFFFFF),
@@ -113,6 +114,14 @@ fun App() {
     MaterialTheme(colorScheme = colorScheme, typography = AppTypography()) {
         Surface(color = MaterialTheme.colorScheme.background) {
             when (val screen = state.screen) {
+                is Screen.Welcome -> WelcomeScreen(
+                    onGetStartedClick = { viewModel.navigate(Screen.ApiKeySetup) }
+                )
+                is Screen.ApiKeySetup -> ApiKeySetupScreen(
+                    viewModel = viewModel,
+                    state = state,
+                    onBackClick = { viewModel.navigate(Screen.Welcome) }
+                )
                 is Screen.SessionList -> SessionListScreen(viewModel, state)
                 is Screen.CreateSession -> CreateSessionScreen(viewModel, state)
                 is Screen.SessionDetail -> SessionDetailScreen(viewModel, state, screen)
