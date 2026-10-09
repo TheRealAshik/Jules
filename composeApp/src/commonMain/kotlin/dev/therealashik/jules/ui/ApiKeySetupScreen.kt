@@ -1,5 +1,8 @@
 package dev.therealashik.jules.ui
 
+import dev.therealashik.jules.ChatGPTBlue
+import androidx.compose.ui.graphics.Color
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -194,7 +197,11 @@ fun ApiKeySetupScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 52.dp),
-                    shape = RoundedCornerShape(28.dp)
+                    shape = RoundedCornerShape(28.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ChatGPTBlue,
+                        contentColor = Color.White
+                    )
                 ) {
                     if (state.isLoading) {
                         Row(

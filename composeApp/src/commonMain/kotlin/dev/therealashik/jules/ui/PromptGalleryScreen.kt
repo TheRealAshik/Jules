@@ -1,5 +1,8 @@
 package dev.therealashik.jules.ui
 
+import dev.therealashik.jules.ChatGPTBlue
+import androidx.compose.ui.graphics.Color
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -36,7 +39,9 @@ fun PromptGalleryScreen(viewModel: JulesViewModel, state: UiState) {
             ExtendedFloatingActionButton(
                 onClick = { showAddDialog = true },
                 icon = { Icon(Icons.Filled.Add, contentDescription = Strings.ADD_PROMPT_LOWER) },
-                text = { Text(Strings.ADD_PROMPT) }
+                text = { Text(Strings.ADD_PROMPT) },
+                containerColor = ChatGPTBlue,
+                contentColor = Color.White
             )
         }
     ) { paddingValues ->
