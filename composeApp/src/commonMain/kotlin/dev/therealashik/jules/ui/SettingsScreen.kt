@@ -78,7 +78,6 @@ fun SettingsScreen(viewModel: JulesViewModel, state: UiState) {
         ) {
             Spacer(modifier = Modifier.height(Dimens.spacingXxs))
 
-            // Subtitle
             Text(
                 text = Strings.SETTINGS_SUBTITLE,
                 style = MaterialTheme.typography.bodyMedium,
@@ -398,15 +397,19 @@ fun SettingsScreen(viewModel: JulesViewModel, state: UiState) {
                             )
                         }
 
-                        AssistChip(
-                            onClick = {},
-                            label = { Text("${state.pageSize}") },
-                            colors = AssistChipDefaults.assistChipColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                labelColor = MaterialTheme.colorScheme.onSecondaryContainer
-                            ),
-                            border = null
-                        )
+                        // Non-clickable badge for page size
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer
+                        ) {
+                            Text(
+                                text = "${state.pageSize}",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.padding(horizontal = Dimens.spacingM, vertical = Dimens.spacingXs)
+                            )
+                        }
                     }
 
                     Text(

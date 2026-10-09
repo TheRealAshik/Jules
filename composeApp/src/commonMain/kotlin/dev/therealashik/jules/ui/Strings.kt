@@ -9,7 +9,7 @@ object Strings {
     const val API_KEY_SETUP = "API Key Setup"
     const val API_KEY_EXPLANATION = "Jules requires a valid API key to connect to the Jules API, execute tasks, and manage your coding sessions."
     const val WHY_API_KEY_NEEDED = "Why is an API key required?"
-    const val WHY_API_KEY_ANSWER = "Your API key securely authenticates your requests directly with Google's Jules API. It is stored safely on your device and never shared."
+    const val WHY_API_KEY_ANSWER = "Your API key authenticates your requests directly with Google's Jules API. It is stored locally on your device for making API calls."
     const val VALIDATE_AND_SAVE = "Validate & Save"
     const val VALIDATING_KEY = "Validating API key..."
     const val INVALID_API_KEY = "Invalid API key or network error. Please verify your key and try again."

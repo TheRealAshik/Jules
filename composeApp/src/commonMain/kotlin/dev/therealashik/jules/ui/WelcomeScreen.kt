@@ -1,22 +1,16 @@
 package dev.therealashik.jules.ui
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,41 +20,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
-private val AgentSteps = listOf(
-    "Cloning repository...",
-    "Analyzing codebase...",
-    "Reading AGENTS.md...",
-    "Indexing project files...",
-    "Scanning dependency tree...",
-    "Parsing build configurations...",
-    "Understanding system architecture...",
-    "Checking git branch & history...",
-    "Identifying task requirements...",
-    "Searching relevant symbols...",
-    "Constructing execution plan...",
-    "Verifying Kotlin types & signatures...",
-    "Running static code analysis...",
-    "Inspecting API contracts...",
-    "Generating code solution...",
-    "Applying atomic file changes...",
-    "Running unit test suite...",
-    "Verifying edge cases...",
-    "Formatting code style...",
-    "Plan generated & ready for review!"
-)
-
 @Composable
 fun WelcomeScreen(
     onGetStartedClick: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
-
-    // Color definitions aligned with the design vision
-    val circleBg = if (isDark) Color(0xFF284820) else Color(0xFFC3EBA2)
-    val sparkleColor = if (isDark) Color(0xFFD0F0C0) else Color(0xFF193B11)
-    val buttonBg = if (isDark) Color(0xFF386A20) else Color(0xFF325A1E)
-    val buttonContent = Color.White
-
     Scaffold(
         contentWindowInsets = WindowInsets.safeDrawing
     ) { innerPadding ->
@@ -68,24 +31,22 @@ fun WelcomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = Dimens.spacingL, vertical = Dimens.spacingL)
+                .padding(horizontal = Dimens.spacingL, vertical = Dimens.spacingM)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f, fill = false),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Spacer(modifier = Modifier.height(Dimens.spacingXl))
+                Spacer(modifier = Modifier.height(Dimens.spacingM))
 
-                // Top Mint Sparkle Badge
+                // Hero Sparkle Badge
                 Surface(
                     shape = CircleShape,
-                    color = circleBg,
-                    modifier = Modifier.size(96.dp)
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.size(80.dp)
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
@@ -94,13 +55,13 @@ fun WelcomeScreen(
                         Text(
                             text = Strings.SPARKLE,
                             style = MaterialTheme.typography.displayMedium,
-                            color = sparkleColor,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
                             fontWeight = FontWeight.Bold
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(Dimens.spacingXl))
+                Spacer(modifier = Modifier.height(Dimens.spacingL))
 
                 Text(
                     text = Strings.MEET_JULES,
@@ -110,28 +71,26 @@ fun WelcomeScreen(
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(Dimens.spacingM))
+                Spacer(modifier = Modifier.height(Dimens.spacingS))
 
                 Text(
                     text = Strings.WELCOME_DESCRIPTION,
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = Dimens.spacingM)
+                    modifier = Modifier.padding(horizontal = Dimens.spacingS)
                 )
 
-                Spacer(modifier = Modifier.height(Dimens.spacingXxl))
+                Spacer(modifier = Modifier.height(Dimens.spacingL))
 
-                // Visual Animated Code Card
-                WelcomeVisualElement(isDark = isDark)
-
-                Spacer(modifier = Modifier.height(Dimens.spacingXxl))
+                // Example Session Visual Card
+                WelcomeVisualElement()
             }
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = Dimens.spacingM),
+                    .padding(top = Dimens.spacingL, bottom = Dimens.spacingS),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
@@ -147,11 +106,11 @@ fun WelcomeScreen(
                     onClick = onGetStartedClick,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 56.dp),
+                        .heightIn(min = 52.dp),
                     shape = RoundedCornerShape(28.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = buttonBg,
-                        contentColor = buttonContent
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
                     )
                 ) {
                     Text(
@@ -166,43 +125,29 @@ fun WelcomeScreen(
 }
 
 @Composable
-private fun WelcomeVisualElement(isDark: Boolean) {
-    var stepIndex by remember { mutableStateOf(0) }
-
-    LaunchedEffect(Unit) {
-        while (true) {
-            kotlinx.coroutines.delay(2200L)
-            stepIndex = (stepIndex + 1) % AgentSteps.size
-        }
-    }
-
-    val cardBg = if (isDark) Color(0xFF232523) else Color(0xFFF1F2F0)
-    val codeAreaBg = if (isDark) Color(0xFF1B1D1B) else Color(0xFFE6E8E4)
-    val badgeBg = if (isDark) Color(0xFF2E4D26) else Color(0xFFD4E9C8)
-    val badgeText = if (isDark) Color(0xFFD2F3C3) else Color(0xFF224219)
-    val activeText = if (isDark) Color(0xFF8FD87B) else Color(0xFF2D5722)
-
+private fun WelcomeVisualElement() {
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = Dimens.spacingXs),
+            .padding(horizontal = Dimens.spacingXxs),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.elevatedCardColors(
-            containerColor = cardBg
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
         ),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Dimens.spacingL)
+                .padding(Dimens.spacingL),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spacingM)
         ) {
+            // Card Header: Window Controls + Example Badge
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Colored Window Control Dots
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(Dimens.spacingXs),
                     verticalAlignment = Alignment.CenterVertically
@@ -211,26 +156,25 @@ private fun WelcomeVisualElement(isDark: Boolean) {
                         modifier = Modifier
                             .size(10.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFE56A5D))
+                            .background(MaterialTheme.colorScheme.error.copy(alpha = 0.8f))
                     )
                     Box(
                         modifier = Modifier
                             .size(10.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFE5C05D))
+                            .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f))
                     )
                     Box(
                         modifier = Modifier
                             .size(10.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF5DE57A))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f))
                     )
                 }
 
-                // jules-agent Tag
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = badgeBg
+                    color = MaterialTheme.colorScheme.secondaryContainer
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = Dimens.spacingS, vertical = Dimens.spacingXxs),
@@ -241,71 +185,73 @@ private fun WelcomeVisualElement(isDark: Boolean) {
                             imageVector = Icons.Default.Terminal,
                             contentDescription = null,
                             modifier = Modifier.size(14.dp),
-                            tint = badgeText
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                         Text(
-                            text = "jules-agent",
+                            text = "Example session",
                             style = MaterialTheme.typography.labelSmall,
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.SemiBold,
-                            color = badgeText
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(Dimens.spacingM))
-
+            // Short, formatted code block
             Surface(
                 shape = RoundedCornerShape(16.dp),
-                color = codeAreaBg,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
                     modifier = Modifier.padding(Dimens.spacingM),
                     verticalArrangement = Arrangement.spacedBy(Dimens.spacingS)
                 ) {
-                    // Animated Step Text
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = Strings.SPARKLE,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = activeText,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.width(Dimens.spacingXs))
-                        AnimatedContent(
-                            targetState = AgentSteps[stepIndex],
-                            transitionSpec = {
-                                (slideInVertically { height -> height } + fadeIn()) togetherWith
-                                    (slideOutVertically { height -> -height } + fadeOut())
-                            },
-                            label = "AgentStepAnimation"
-                        ) { currentStep ->
-                            Text(
-                                text = currentStep,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontFamily = FontFamily.Monospace,
-                                fontWeight = FontWeight.SemiBold,
-                                color = activeText
-                            )
-                        }
-                    }
+                    Text(
+                        text = "jules.createSession(\n  prompt = \"Fix bug\"\n)",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
 
-                    Text(
-                        text = "val session = jules.createSession(\"Fix bug\")",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontFamily = FontFamily.Monospace,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                     )
-                    Text(
-                        text = "✓ Plan generated & ready for review",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontFamily = FontFamily.Monospace,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                    )
+
+                    // Coherent workflow steps
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(Dimens.spacingXs)
+                    ) {
+                        ExampleStepRow(text = "Analyze task")
+                        ExampleStepRow(text = "Build plan")
+                        ExampleStepRow(text = "Ready for review", isHighlight = true)
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ExampleStepRow(text: String, isHighlight: Boolean = false) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spacingXs)
+    ) {
+        Icon(
+            imageVector = Icons.Default.CheckCircle,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+            tint = if (isHighlight) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            fontFamily = FontFamily.Monospace,
+            fontWeight = if (isHighlight) FontWeight.Bold else FontWeight.Normal,
+            color = if (isHighlight) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
