@@ -28,56 +28,6 @@ import dev.therealashik.jules.gallery.PromptGalleryRepository
 import dev.therealashik.jules.ui.ThemePreference
 import dev.therealashik.jules.ui.CrashDialog
 
-private val LightColorScheme = lightColorScheme(
-    primary = Color(0xFF325A1E),
-    onPrimary = Color(0xFFFFFFFF),
-    primaryContainer = Color(0xFFC3EBA2),
-    onPrimaryContainer = Color(0xFF0F2006),
-    secondary = Color(0xFF53634E),
-    onSecondary = Color(0xFFFFFFFF),
-    secondaryContainer = Color(0xFFD6E8CE),
-    onSecondaryContainer = Color(0xFF111F0F),
-    tertiary = Color(0xFF386568),
-    onTertiary = Color(0xFFFFFFFF),
-    tertiaryContainer = Color(0xFFBCEBEF),
-    onTertiaryContainer = Color(0xFF002022),
-    error = Color(0xFFBA1A1A),
-    onError = Color(0xFFFFFFFF),
-    errorContainer = Color(0xFFFFDAD6),
-    onErrorContainer = Color(0xFF410002),
-    background = Color(0xFFF8FAF5),
-    onBackground = Color(0xFF1A1C19),
-    surface = Color(0xFFF8FAF5),
-    onSurface = Color(0xFF1A1C19),
-    surfaceVariant = Color(0xFFE1E4DA),
-    onSurfaceVariant = Color(0xFF44483F)
-)
-
-private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFFA8D48A),
-    onPrimary = Color(0xFF133804),
-    primaryContainer = Color(0xFF284F17),
-    onPrimaryContainer = Color(0xFFC3EBA2),
-    secondary = Color(0xFFBACCB3),
-    onSecondary = Color(0xFF263422),
-    secondaryContainer = Color(0xFF3C4B37),
-    onSecondaryContainer = Color(0xFFD6E8CE),
-    tertiary = Color(0xFFA0CFD2),
-    onTertiary = Color(0xFF003639),
-    tertiaryContainer = Color(0xFF1E4D50),
-    onTertiaryContainer = Color(0xFFBCEBEF),
-    error = Color(0xFFFFB4AB),
-    onError = Color(0xFF690005),
-    errorContainer = Color(0xFF93000A),
-    onErrorContainer = Color(0xFFFFDAD6),
-    background = Color(0xFF121411),
-    onBackground = Color(0xFFE2E3DD),
-    surface = Color(0xFF121411),
-    onSurface = Color(0xFFE2E3DD),
-    surfaceVariant = Color(0xFF44483F),
-    onSurfaceVariant = Color(0xFFC5C8BA)
-)
-
 @Composable
 fun App() {
     val store = remember { KeyValueStore() }
@@ -143,4 +93,3 @@ fun App() {
     }
 }
 
-fun getDefaultColorScheme(darkTheme: Boolean) = if (darkTheme) DarkColorScheme else LightColorScheme
