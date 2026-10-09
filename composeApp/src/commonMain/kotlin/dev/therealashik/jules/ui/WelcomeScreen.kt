@@ -1,6 +1,13 @@
 package dev.therealashik.jules.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -9,19 +16,51 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
+private val AgentSteps = listOf(
+    "Cloning repository...",
+    "Analyzing codebase...",
+    "Reading AGENTS.md...",
+    "Indexing project files...",
+    "Scanning dependency tree...",
+    "Parsing build configurations...",
+    "Understanding system architecture...",
+    "Checking git branch & history...",
+    "Identifying task requirements...",
+    "Searching relevant symbols...",
+    "Constructing execution plan...",
+    "Verifying Kotlin types & signatures...",
+    "Running static code analysis...",
+    "Inspecting API contracts...",
+    "Generating code solution...",
+    "Applying atomic file changes...",
+    "Running unit test suite...",
+    "Verifying edge cases...",
+    "Formatting code style...",
+    "Plan generated & ready for review!"
+)
+
 @Composable
 fun WelcomeScreen(
     onGetStartedClick: () -> Unit
 ) {
+    val isDark = isSystemInDarkTheme()
+
+    // Color definitions aligned with the design vision
+    val circleBg = if (isDark) Color(0xFF284820) else Color(0xFFC3EBA2)
+    val sparkleColor = if (isDark) Color(0xFFD0F0C0) else Color(0xFF193B11)
+    val buttonBg = if (isDark) Color(0xFF386A20) else Color(0xFF325A1E)
+    val buttonContent = Color.White
+
     Scaffold(
         contentWindowInsets = WindowInsets.safeDrawing
     ) { innerPadding ->
@@ -42,10 +81,11 @@ fun WelcomeScreen(
             ) {
                 Spacer(modifier = Modifier.height(Dimens.spacingXl))
 
+                // Top Mint Sparkle Badge
                 Surface(
                     shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.size(72.dp)
+                    color = circleBg,
+                    modifier = Modifier.size(96.dp)
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
@@ -53,13 +93,14 @@ fun WelcomeScreen(
                     ) {
                         Text(
                             text = Strings.SPARKLE,
-                            style = MaterialTheme.typography.headlineLarge,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            style = MaterialTheme.typography.displayMedium,
+                            color = sparkleColor,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(Dimens.spacingL))
+                Spacer(modifier = Modifier.height(Dimens.spacingXl))
 
                 Text(
                     text = Strings.MEET_JULES,
@@ -81,7 +122,8 @@ fun WelcomeScreen(
 
                 Spacer(modifier = Modifier.height(Dimens.spacingXxl))
 
-                WelcomeVisualElement()
+                // Visual Animated Code Card
+                WelcomeVisualElement(isDark = isDark)
 
                 Spacer(modifier = Modifier.height(Dimens.spacingXxl))
             }
@@ -105,17 +147,17 @@ fun WelcomeScreen(
                     onClick = onGetStartedClick,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 52.dp),
+                        .heightIn(min = 56.dp),
                     shape = RoundedCornerShape(28.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
+                        containerColor = buttonBg,
+                        contentColor = buttonContent
                     )
                 ) {
                     Text(
                         text = Strings.GET_STARTED,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
@@ -124,14 +166,29 @@ fun WelcomeScreen(
 }
 
 @Composable
-private fun WelcomeVisualElement() {
+private fun WelcomeVisualElement(isDark: Boolean) {
+    var stepIndex by remember { mutableStateOf(0) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(2200L)
+            stepIndex = (stepIndex + 1) % AgentSteps.size
+        }
+    }
+
+    val cardBg = if (isDark) Color(0xFF232523) else Color(0xFFF1F2F0)
+    val codeAreaBg = if (isDark) Color(0xFF1B1D1B) else Color(0xFFE6E8E4)
+    val badgeBg = if (isDark) Color(0xFF2E4D26) else Color(0xFFD4E9C8)
+    val badgeText = if (isDark) Color(0xFFD2F3C3) else Color(0xFF224219)
+    val activeText = if (isDark) Color(0xFF8FD87B) else Color(0xFF2D5722)
+
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = Dimens.spacingS),
+            .padding(horizontal = Dimens.spacingXs),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            containerColor = cardBg
         ),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
     ) {
@@ -145,6 +202,7 @@ private fun WelcomeVisualElement() {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Colored Window Control Dots
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(Dimens.spacingXs),
                     verticalAlignment = Alignment.CenterVertically
@@ -153,25 +211,26 @@ private fun WelcomeVisualElement() {
                         modifier = Modifier
                             .size(10.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.error.copy(alpha = 0.8f))
+                            .background(Color(0xFFE56A5D))
                     )
                     Box(
                         modifier = Modifier
                             .size(10.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f))
+                            .background(Color(0xFFE5C05D))
                     )
                     Box(
                         modifier = Modifier
                             .size(10.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f))
+                            .background(Color(0xFF5DE57A))
                     )
                 }
 
+                // jules-agent Tag
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.secondaryContainer
+                    shape = RoundedCornerShape(10.dp),
+                    color = badgeBg
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = Dimens.spacingS, vertical = Dimens.spacingXxs),
@@ -182,13 +241,14 @@ private fun WelcomeVisualElement() {
                             imageVector = Icons.Default.Terminal,
                             contentDescription = null,
                             modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer
+                            tint = badgeText
                         )
                         Text(
                             text = "jules-agent",
                             style = MaterialTheme.typography.labelSmall,
                             fontFamily = FontFamily.Monospace,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                            fontWeight = FontWeight.SemiBold,
+                            color = badgeText
                         )
                     }
                 }
@@ -198,29 +258,40 @@ private fun WelcomeVisualElement() {
 
             Surface(
                 shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                color = codeAreaBg,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
                     modifier = Modifier.padding(Dimens.spacingM),
-                    verticalArrangement = Arrangement.spacedBy(Dimens.spacingXs)
+                    verticalArrangement = Arrangement.spacedBy(Dimens.spacingS)
                 ) {
+                    // Animated Step Text
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = Strings.SPARKLE,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = activeText,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.width(Dimens.spacingXs))
-                        Text(
-                            text = "Analyzing repository...",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        AnimatedContent(
+                            targetState = AgentSteps[stepIndex],
+                            transitionSpec = {
+                                (slideInVertically { height -> height } + fadeIn()) togetherWith
+                                    (slideOutVertically { height -> -height } + fadeOut())
+                            },
+                            label = "AgentStepAnimation"
+                        ) { currentStep ->
+                            Text(
+                                text = currentStep,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.SemiBold,
+                                color = activeText
+                            )
+                        }
                     }
+
                     Text(
                         text = "val session = jules.createSession(\"Fix bug\")",
                         style = MaterialTheme.typography.bodySmall,
@@ -231,7 +302,7 @@ private fun WelcomeVisualElement() {
                         text = "✓ Plan generated & ready for review",
                         style = MaterialTheme.typography.bodySmall,
                         fontFamily = FontFamily.Monospace,
-                        color = MaterialTheme.colorScheme.secondary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                     )
                 }
             }
