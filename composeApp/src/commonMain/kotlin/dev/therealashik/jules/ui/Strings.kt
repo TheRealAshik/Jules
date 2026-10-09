@@ -20,6 +20,8 @@ object Strings {
     const val SESSION_PREFERENCES = "Session Preferences"
     const val ITEMS_PER_PAGE = "Items per page"
     const val PROMPT_GALLERY_SUBTITLE = "Manage saved prompt templates for quick reuse"
+    const val RETRY = "Retry"
+    const val CREATE_FIRST_SESSION_DESCRIPTION = "Start a new coding session with Jules to solve bugs, implement features, or inspect repos."
     const val NEW_SESSION = "New Session"
     const val SETTINGS = "Settings"
     const val PROMPT_GALLERY = "Prompt Gallery"
